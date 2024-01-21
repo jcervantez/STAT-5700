@@ -1,11 +1,15 @@
 ---
 title: " Modern Data Mining, HW 1"
 author:
-- Group Member 1
-- Group Member 2
-- Group Member 3
+- Bethany Hsaio
+- Rob Kuan
+- Jose Cervantez
 date: 'Due: 11:59PM,  Feb 4th, 2024'
 output:
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '4'
   html_document:
     code_folding: show
     highlight: haddock
@@ -14,10 +18,6 @@ output:
     toc: yes
     toc_depth: 4
     toc_float: yes
-  pdf_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: '4'
   word_document:
     toc: yes
     toc_depth: '4'
@@ -101,9 +101,68 @@ Select only the variables Age, Gender, Education Level, Household Income in 2013
 
 Change the variable names to be "age", "gender", "education", "income", "sirius", "wharton", "worktime".
 
+```{r, results='markup'}
+d0 <- read.csv('data/Survey_results_final.csv', header = T) |> 
+  select(Answer.Age, Answer.Gender, Answer.Education, Answer.HouseHoldIncome, Answer.Sirius.Radio, Answer.Wharton.Radio, WorkTimeInSeconds) |> 
+  rename(age = Answer.Age,
+         gender = Answer.Gender,
+         education = Answer.Education,
+         income = Answer.HouseHoldIncome,
+         sirius = Answer.Sirius.Radio,
+         wharton = Answer.Wharton.Radio,
+         worktime = WorkTimeInSeconds)
+
+names(d0)
+
+```
+
 2. Handle missing/wrongly filled values of the selected variables
 
 As in real world data with user input, the data is incomplete, with missing values, and has incorrect responses. There is no general rule for dealing with these problems beyond “use common sense.” In whatever case, explain what the problems were and how you addressed them. Be sure to explain your rationale for your chosen methods of handling issues with the data. Do not use Excel for this, however tempting it might be.
+
+```{r, results='markup', echo=T, warning=F}
+## assign NA for empty strings
+d0 <- d0 %>%
+  mutate(across(where(is.character), ~na_if(., "")))
+
+
+## age
+table(d0$age)
+d0 <- d0 |> 
+  filter(!grepl("^\\d+$", age) | as.numeric(age) < 18 | as.numeric(age) > 100) |> 
+  mutate(age = case_when(
+    age == "27`" ~ 27,                        # Change '27`' to '27'
+    age == "Eighteen (18)" ~ 18,              # Change 'Eighteen (18)' to '18'
+    TRUE ~ NA_integer_                        # Set all other values to NA
+  ))
+
+## gender
+# table(d0$gender) # good
+
+
+## education
+# table(d0$education)
+d0 <- d0 |> 
+  mutate(education = case_when(
+    education %in% c("Other", "select one") ~ NA_character_,
+    TRUE ~ education
+  ))
+
+## income
+# table(d0$income) # good
+
+
+## sirius
+# table(d0$sirius) # good
+
+## wharton
+# table(d0$wharton) # good
+
+## worktime
+# table(d0$worktime) # good
+
+
+```
 
 Tip: Reflect on the reasons for which data could be wrong or missing. How would you address each case? For this homework, if you are trying to predict missing values with regression, you are definitely overthinking. Keep it simple.
 
@@ -213,7 +272,7 @@ To help out, we have included some R-codes here as references. You should make y
 ```{r data wrangling, echo = FALSE, warning = FALSE}
 # For the demonstration purpose, we show this R-chunk by taking echo=TRUE
 # In your final report you should hide all the R-chunks to keep your report flowing well.
-wsci <- read_excel("WomenData_06_16.xlsx")
+wsci <- read_excel("data/WomenData_06_16.xlsx")
 names(wsci)
 head(wsci)
 #change names
