@@ -1,8 +1,8 @@
 ---
 title: " Modern Data Mining, HW 1"
 author:
-- Bethany Hsaio
 - Rob Kuan
+- Bethany Hsaio
 - Jose Cervantez
 date: 'Due: 11:59PM,  Feb 4th, 2024'
 output:
