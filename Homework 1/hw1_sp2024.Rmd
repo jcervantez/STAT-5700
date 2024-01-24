@@ -1,8 +1,8 @@
 ---
 title: " Modern Data Mining, HW 1"
 author:
-- Bethany Hsaio
 - Rob Kuan
+- Bethany Hsaio
 - Jose Cervantez
 date: 'Due: 11:59PM,  Feb 4th, 2024'
 output:
@@ -233,34 +233,139 @@ Notice the data came in as an Excel file. We need to use the package `readxl` an
 
 
 a). Read the data into R.
+```{r, results='markup'}
+wsci <- read_excel("data/WomenData_06_16.xlsx")
+```
 
 b). Clean the names of each variables. (Change variable names to  `Field`,`Degree`, `Sex`, `Year` and `Number` )
+```{r}
+wsci %<>% 
+  rename(Field = 'Field and sex',
+         Number = 'Degrees Awarded')
+```
 
 c). Set the variable natures properly. 
+Field, Degree, and Sex are strings, which is appropriate for their data. Year and Number are numeric, which are also appropriate.
+```{r}
+str(wsci)
+```
 
 d). Any missing values?
+There are no missing values. All columns have the same length, and there are no null values in any of the columns.
+```{r}
+summary(wsci)
+length(wsci$Year)
+length(wsci$Number)
+
+table(wsci$Field)
+table(wsci$Degree)
+table(wsci$Sex)
+table(wsci$Year)
+table(wsci$Number)
+
+sum(is.na(wsci))
+```
 
 2. Write a summary describing the data set provided here. 
 
 a). How many fields are there in this data?
+There are 10 unique fields.
+```{r}
+length(unique(wsci$Field))
+```
 
 b). What are the degree types? 
+They are BS, MS, PhD.
+```{r}
+unique(wsci$Degree)
+```
 
 c). How many year's statistics are being reported here? 
-
+There are 11 years of statistics in this dataset.
+```{r}
+length(unique(wsci$Year))
+```
 
 
 ## BS degrees in 2015
 
 Is there evidence that more males are in science-related fields vs `Non-S&E`? Provide summary statistics and a plot which shows the number of people by gender and by field. Write a brief summary to describe your findings.
 
+There is not evidence that there are more males in science-related fields. In 2015, 327122 males earned S&E degrees and 493304 males earned non-S&E degrees, indicating that there are fewer males in science-related fields. Additionally, there is not evidence that there are more men than women obtaining S&E BS degrees. In 2015, 322935 women and 327122 earned S&E degrees, showing that roughly the same number of females as males obtained S&E degrees. 
+```{r}
+bs_2015 = wsci %>% filter(Year == 2015, Degree == "BS")
+
+bs_2015 %>%
+  mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
+  group_by(SE, Sex) %>%
+  summarise(SE_number = sum(Number))
+
+bs_2015 %>%
+  mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
+  group_by(SE, Sex) %>%
+  summarise(SE_number = sum(Number)) %>%
+  ggplot(aes(x = SE, y = SE_number, fill = Sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme(axis.text.y = element_text(angle = 60)) +
+  ggtitle("Degrees granted by S&E vs non-S&E by gender")
+```
+
 ## EDA bringing type of degree, field and gender in 2015
 
 Describe the number of people by type of degree, field, and gender. Do you see any evidence of gender effects over different types of degrees? Again, provide graphs to summarize your findings.
 
+When we include the Degree in our analyses, we see that overall, more women than men pursue degrees at the BS, MS, and PhD levels. When we consider S&E vs non-S&E fields, more men than women earn S&E degrees at the MS and PhD levels. Once we include all fields, we notice larger gender effects for non-S&E, psychology, biological sciences, and engineering fields across all degrees. For non-S&E, psychology, and biological sciences degrees, more women than men pursue these. On the other hand, for engineering degrees, more men than women pursue these. 
+
+```{r}
+data_2015 = wsci %>% filter(Year == 2015)
+
+data_2015 %>%  
+  group_by(Sex, Degree, Field) %>%
+  summarise(Number = sum(Number))
+
+data_2015 %>%  # to get the average number of ppl by gender
+  mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
+  group_by(SE, Sex, Degree) %>%
+  summarise(Number = sum(Number)) %>%
+  ggplot(aes(x = SE, y = Number, fill = Sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(SE~Degree, scales = "free_y") +
+  ggtitle("Degrees granted by sex, degree and SE")
+
+data_2015 %>%
+  ggplot(aes(x = Field, y = Number, fill = Sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(Degree~., scales = "free_y") +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  ggtitle("Degrees granted across fields by degree and gender in 2015") 
+```
+
 ## EDA bring all variables 
 
 In this last portion of the EDA, we ask you to provide evidence numerically and graphically: Do the number of  degrees change by gender, field, and time? 
+
+```{r}
+
+wsci %>%
+  filter(Degree == "BS") %>%
+  ggplot(aes(x = Year, y = Number, fill = Sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_grid(Field~., scales = "free_y") +
+  ggtitle("BS degrees granted across fields and sexes over time")
+
+# TODO: above is a disaster ... I'll need to play with it
+
+wsci %>%
+  group_by(Field, Sex, Year, Degree) %>%
+  summarise(Number = sum(Number)) %>%
+  group_by(Field, Year, Degree) %>%
+  mutate(ratio = Number / sum(Number)) %>%
+  filter(Sex == "Female") %>%
+  ggplot(aes(x = Year, y = ratio, color = Field)) +
+  geom_point() + geom_line() +
+  facet_grid(~Degree)+
+  ggtitle("Female proportion in fields across year by degree")
+```
 
 ## Women in Data Science
 
@@ -292,12 +397,12 @@ wsci %<>%
 
 
 ```{r, echo=FALSE}
-# wsci %<>%
-#   rename(Field = "Field and sex",
-#          Number = "Degrees Awarded") %>%
-#   mutate(Field = as.factor(Field),
-#          Degree = as.factor(Degree),
-#          Sex = as.factor(Sex))
+wsci %<>%
+  rename(
+         Number = "Degrees Awarded") %>%
+  mutate(
+         Degree = as.factor(Degree),
+         Sex = as.factor(Sex))
 
 ```
 
