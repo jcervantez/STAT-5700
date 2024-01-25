@@ -1,5 +1,5 @@
 ---
-title: " Modern Data Mining, HW 1"
+title: "Modern Data Mining, HW 1"
 author:
 - Rob Kuan
 - Bethany Hsaio
@@ -26,6 +26,7 @@ urlcolor: blue
 
 
 ```{r setup, include=FALSE}
+rm(list=ls()) 
 knitr::opts_chunk$set(echo = FALSE, results = "hide", fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
@@ -101,7 +102,9 @@ Select only the variables Age, Gender, Education Level, Household Income in 2013
 
 Change the variable names to be "age", "gender", "education", "income", "sirius", "wharton", "worktime".
 
-```{r, results='markup'}
+\textcolor{red}{\textbf{Answer:}}
+
+```{r echo=TRUE, results='markup'}
 d0 <- read.csv('data/Survey_results_final.csv', header = T) |> 
   select(Answer.Age, Answer.Gender, Answer.Education, Answer.HouseHoldIncome, Answer.Sirius.Radio, Answer.Wharton.Radio, WorkTimeInSeconds) |> 
   rename(age = Answer.Age,
@@ -112,13 +115,15 @@ d0 <- read.csv('data/Survey_results_final.csv', header = T) |>
          wharton = Answer.Wharton.Radio,
          worktime = WorkTimeInSeconds)
 
-names(d0)
+names(d0) 
 
 ```
 
 2. Handle missing/wrongly filled values of the selected variables
 
 As in real world data with user input, the data is incomplete, with missing values, and has incorrect responses. There is no general rule for dealing with these problems beyond “use common sense.” In whatever case, explain what the problems were and how you addressed them. Be sure to explain your rationale for your chosen methods of handling issues with the data. Do not use Excel for this, however tempting it might be.
+
+\textcolor{red}{\textbf{Code Cleaning:}}
 
 ```{r, results='markup', echo=T, warning=F}
 ## assign NA for empty strings
@@ -127,14 +132,20 @@ d0 <- d0 %>%
 
 
 ## age
-table(d0$age)
+#table(d0$age)
+
 d0 <- d0 |> 
-  filter(!grepl("^\\d+$", age) | as.numeric(age) < 18 | as.numeric(age) > 100) |> 
   mutate(age = case_when(
-    age == "27`" ~ 27,                        # Change '27`' to '27'
-    age == "Eighteen (18)" ~ 18,              # Change 'Eighteen (18)' to '18'
-    TRUE ~ NA_integer_                        # Set all other values to NA
+    age == "27`" ~ "27",                   # Change '27`' to '27'
+    age == "Eighteen (18)" ~ "18",         # Change 'Eighteen (18)' to '18'
+    TRUE ~ age                             # Set all other values to age
+  ),
+  age = as.numeric(age),                   # Convert age to numeric
+  age = case_when(
+    age > 100 ~ NA_real_,                  # Replace age > 100 with NA
+    TRUE ~ age                             # Keep all other ages as they are
   ))
+
 
 ## gender
 # table(d0$gender) # good
@@ -166,15 +177,79 @@ d0 <- d0 |>
 
 Tip: Reflect on the reasons for which data could be wrong or missing. How would you address each case? For this homework, if you are trying to predict missing values with regression, you are definitely overthinking. Keep it simple.
 
+\textcolor{red}{\textbf{Reasoning:}}
+
+\begin{itemize}
+  \item For each variable in our dataset, I executed a `table` command to visually expect the frequencies of the data. I also used personal judgment to assess whether the item was either missing, entered incorrectly, or unable to tell the difference. In the cases that I was able to quickly identify that the value was entered in an incorrect format, I adjusted the format correctly. For example, changing `Eighteen (18)` to `18.` For items that were entered incorrectly but I couldn't determine a reasonable alternative or for missing data, I assumed NA for those values.
+\end{itemize}
+
+
 3. Brief summary 
 
 Write a brief report to summarize all the variables collected. Include both summary statistics (including sample size) and graphical displays such as histograms or bar charts where appropriate. Comment on what you have found from this sample. (For example - it's very interesting to think about why would one work for a job that pays only 10cents/each survey? Who are those survey workers? The answer may be interesting even if it may not directly relate to our goal.)
 
+\textcolor{red}{\textbf{Code for Summary Stats:}}
 
-```{r}
+```{r echo=TRUE}
+summarize_data <- function(df) {
+  for (column_name in names(df)) {
+    data <- df[[column_name]]
+
+    cat("\n\nSummary for column:", column_name, "\n")
+    
+    if (is.numeric(data)) {
+      # Numeric summary
+      summary_stats <- summary(data)
+      print(summary_stats)
+      
+      # Histogram using ggplot2
+      p <- ggplot(df, aes(x = .data[[column_name]])) +
+        geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+        labs(title = paste("Histogram of", column_name), x = column_name, y = "Count")+
+        theme(legend.position = "none")
+      
+      # Handling NA values explicitly
+      if (any(is.na(data))) {
+        p <- p + geom_histogram(data = df[!is.na(df[[column_name]]), ], aes(x = .data[[column_name]]))
+      }
+    
+    } else if (is.factor(data) || is.character(data)) {
+      # Categorical summary
+      cat_table <- data.frame(table(data))
+      total <- sum(cat_table$Freq)
+      cat_table$Perc <- (cat_table$Freq / total) * 100
+      # Find the maximum frequency to adjust ylim
+      max_freq <- max(cat_table$Freq)
+  
+  # Bar Plot using ggplot2
+    p <- ggplot(cat_table, aes(x = data, y = Freq, fill = data)) +
+      geom_bar(stat = "identity") +
+      geom_text(aes(label = sprintf("%.1f%%", Perc)), vjust = -0.5, size = 7, position = position_stack(vjust = 1)) +
+      labs(title = paste("Bar Plot of", column_name), x = column_name, y = "Frequency") +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+      ylim(0, max_freq * 1.2)+  # Increase ylim by 20%
+      theme(legend.position = "none")
 
 
 
+    
+    }
+    print(p)
+  }
+}
+# Define the mapping from old to new names so it can fit in the graph
+education_mapping <- c(
+  "Bachelor’s degree or other 4-year degree" = "Bachelors",
+  "Some college, no diploma; or Associate’s degree" = "Some College",
+  "Graduate or professional degree" = "Graduate",
+  "High school graduate (or equivalent)" = "High school",
+  "Less than 12 years; no high school diploma" = "Less than High School"
+)
+
+# Replace the values in the dataframe
+d0$education <- factor(education_mapping[d0$education])
+
+summarize_data(d0)
 ```
 
 ## Sample properties
