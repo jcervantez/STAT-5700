@@ -676,20 +676,33 @@ head(baseball)
 
 b). Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 ```{r}
-diff_log = baseball %>% filter(year %in% c(2012, 2013)) %>% mutate(logpay = log(payroll))
-lag(diff_log$logpay)
-baseball %>% filter(year %in% c(2012, 2013)) %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = lag(logpay))
+diff_log = baseball %>% filter(year %in% c(2012, 2013)) %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year)
 ```
 
 c). Create a long data table including: team, year, diff_log, win_pct
+
+```{r}
+diff_log_df = baseball %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay-lag(logpay), order_by=year) %>% select(team, year, diff_log, win_pct)
+```
 
 
 ## Exploratory questions
 
 a). Which five teams had highest increase in their payroll between years 2010 and 2014, inclusive?
 
-b). Between 2010 and 2014, inclusive, which team(s) "improved" the most? That is, had the biggest percentage gain in wins?
+The LA Dogers, Washington Nationals, San Diego Padres, Texas Rangers, and San Francisco Giants had the highest increase in their payrolls.
 
+```{r}
+pay_raise = diff_log_df %>% filter(year %in% c(2010, 2011, 2012, 2013, 2014)) %>% group_by(team) %>% mutate(total_diff_log=sum(diff_log)) %>% select(team, total_diff_log) %>% distinct() %>% arrange(desc(total_diff_log))
+head(pay_raise, 5)
+```
+
+b). Between 2010 and 2014, inclusive, which team(s) "improved" the most? That is, had the biggest percentage gain in wins?
+The Pittsburgh Pirates improved the most.
+```{r}
+win_gains = diff_log_df %>% filter(year %in% c(2010, 2014)) %>% group_by(team) %>% mutate(win_gain=win_pct-lag(win_pct), order_by=year) %>% select(team, win_gain) %>% drop_na(win_gain) %>% arrange(desc(win_gain))
+head(win_gains, 5)
+```
 
 ## Do log increases in payroll imply better performance? 
 
