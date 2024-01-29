@@ -664,12 +664,6 @@ Explain why the log difference is more appropriate in this setup.
 In this set up, the log difference is more appropriate because it allows us to get a better understanding of the percentage change of payroll between each year. Since players have different magnitudes in pay, taking the log allows us to base our analysis on the percentage change.
 
 ```{r, include=FALSE}
-paydata = read.csv("./data/MLPayData_Total.csv")
-head(paydata)
-
-paydata$p2013 - paydata$p2012
-log(paydata$p2013) - log(paydata$p2012)
-
 baseball = read.csv("./data/baseball.csv")
 head(baseball)
 ```
