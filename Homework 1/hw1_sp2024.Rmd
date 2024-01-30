@@ -316,11 +316,13 @@ Notice the data came in as an Excel file. We need to use the package `readxl` an
 
 a). Read the data into R.
 ```{r, results='markup'}
+# read in data
 wsci <- read_excel("data/WomenData_06_16.xlsx")
 ```
 
 b). Clean the names of each variables. (Change variable names to  `Field`,`Degree`, `Sex`, `Year` and `Number` )
 ```{r}
+# Rename the variables of "Field and Sex" and "Degrees Awarded" (all other variable names are good already)
 wsci %<>% 
   rename(Field = 'Field and sex',
          Number = 'Degrees Awarded')
@@ -329,22 +331,27 @@ wsci %<>%
 c). Set the variable natures properly. 
 Field, Degree, and Sex are strings, which is appropriate for their data. Year and Number are numeric, which are also appropriate.
 ```{r}
+# Examine variable natures - everything looks appropriate
 str(wsci)
 ```
 
 d). Any missing values?
 There are no missing values. All columns have the same length, and there are no null values in any of the columns.
 ```{r}
+#summary of everything
 summary(wsci)
+# Check no missing values for Year and Number
 length(wsci$Year)
 length(wsci$Number)
 
+# Look at values for each variable
 table(wsci$Field)
 table(wsci$Degree)
 table(wsci$Sex)
 table(wsci$Year)
 table(wsci$Number)
 
+# Sum of all null variables - sum is 0 indicating there are no null values
 sum(is.na(wsci))
 ```
 
@@ -353,18 +360,21 @@ sum(is.na(wsci))
 a). How many fields are there in this data?
 There are 10 unique fields.
 ```{r}
+# Get unique values in Field
 length(unique(wsci$Field))
 ```
 
 b). What are the degree types? 
 They are BS, MS, PhD.
 ```{r}
+# Get unique values in Degree
 unique(wsci$Degree)
 ```
 
 c). How many year's statistics are being reported here? 
 There are 11 years of statistics in this dataset.
 ```{r}
+# Get number of unique values in Year
 length(unique(wsci$Year))
 ```
 
@@ -375,8 +385,10 @@ Is there evidence that more males are in science-related fields vs `Non-S&E`? Pr
 
 There is not evidence that there are more males in science-related fields. In 2015, 327122 males earned S&E degrees and 493304 males earned non-S&E degrees, indicating that there are fewer males in science-related fields. Additionally, there is not evidence that there are more men than women obtaining S&E BS degrees. In 2015, 322935 women and 327122 earned S&E degrees, showing that roughly the same number of females as males obtained S&E degrees. 
 ```{r, include=FALSE}
+# Filter data to just be BS degrees earned in 2015
 bs_2015 = wsci %>% filter(Year == 2015, Degree == "BS")
 
+# Calculate statistics by non-S&E and S&E degrees
 bs_2015_stats = bs_2015 %>%
   mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
   group_by(SE, Sex) %>%
@@ -388,6 +400,7 @@ knitr::kable(bs_2015_stats, caption = "Summary Statistics of Degrees Earned for 
 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Calculate statistics by non-S&E vs S&E degrees and gender
 bs_2015 %>%
   mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
   group_by(SE, Sex) %>%
@@ -405,13 +418,16 @@ Describe the number of people by type of degree, field, and gender. Do you see a
 When we include the Degree in our analyses, we see that overall, more women than men pursue degrees at the BS, MS, and PhD levels. When we consider S&E vs non-S&E fields, more men than women earn S&E degrees at the MS and PhD levels. Once we include all fields, we notice larger gender effects for non-S&E, psychology, biological sciences, and engineering fields across all degrees. For non-S&E, psychology, and biological sciences degrees, more women than men pursue these. On the other hand, for engineering degrees, more men than women pursue these. 
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# filter data to 2015
 data_2015 = wsci %>% filter(Year == 2015)
 
+# Get number of degrees earned by degree type, field, and gender
 data_2015 %>%  
   group_by(Sex, Degree, Field) %>%
   summarise(Number = sum(Number))
 
-data_2015 %>%  # to get the average number of ppl by gender
+# Get number of degrees earned by sex, degree, and S&E vs non S&E
+data_2015 %>%  
   mutate(SE = ifelse(Field!="Non-S&E" , "S&E", "Non-S&E")) %>%
   group_by(SE, Sex, Degree) %>%
   summarise(Number = sum(Number)) %>%
@@ -420,6 +436,7 @@ data_2015 %>%  # to get the average number of ppl by gender
   facet_grid(SE~Degree, scales = "free_y") +
   ggtitle("Degrees granted by sex, degree and SE")
 
+# Include fields, degree, and gender
 data_2015 %>%
   ggplot(aes(x = Field, y = Number, fill = Sex)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -438,10 +455,10 @@ When we display the proportion of females in each degree over time, we see that 
 
 wsci %>%
   group_by(Field, Sex, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
-  group_by(Field, Year, Degree) %>%
-  mutate(ratio = Number / sum(Number)) %>%
-  filter(Sex == "Female") %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by field, sex, year, and degree
+  group_by(Field, Year, Degree) %>% 
+  mutate(ratio = Number / sum(Number)) %>% # get ratio of women to men for each field, year, and egree
+  filter(Sex == "Female") %>% # filter to just women
   ggplot(aes(x = Year, y = ratio, color = Field)) +
   geom_point() + geom_line() +
   facet_grid(~Degree)+
@@ -449,15 +466,16 @@ wsci %>%
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) 
 
 wsci %>%
-  filter(Sex == "Female") %>%
+  filter(Sex == "Female") %>% # filter to just women
   group_by(Field, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by field, year, degree
   ggplot(aes(x = Year, y = Number, color = Field)) +
   geom_point() + geom_line() +
   facet_wrap(~Degree, scales="free_y")+
   ggtitle("Number of degrees earned by females across fields and year")+
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) 
 
+# same as above but for men
 wsci %>%
   filter(Sex == "Male") %>%
   group_by(Field, Year, Degree) %>%
@@ -470,7 +488,7 @@ wsci %>%
 
 wsci %>%
   group_by(Sex, Field, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by sex, field, year, degree
   ggplot(aes(x = Year, y = Number, color = Field)) +
   geom_point() + geom_line() +
   facet_wrap(Sex~Degree, scales="free_y")+
@@ -478,9 +496,9 @@ wsci %>%
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) 
 
 wsci %>%
-  filter(Field != "Non-S&E") %>%
+  filter(Field != "Non-S&E") %>% # filter to only be S&E degrees
   group_by(Sex, Field, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by sex, field, year, degree
   ggplot(aes(x = Year, y = Number, color = Field)) +
   geom_point() + geom_line() +
   facet_wrap(Sex~Degree, scales="free_y")+
@@ -496,11 +514,11 @@ There is evidence that women are underrepresented in data science. For all 3 deg
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
 wsci %>%
-  filter(Field %in% c("Computer sciences", "Mathematics and statistics")) %>%
+  filter(Field %in% c("Computer sciences", "Mathematics and statistics")) %>% # filter to data science degrees
   group_by(Sex, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by sex, year, degree type
   group_by(Year, Degree) %>%
-  mutate(ratio = Number / sum(Number)) %>%
+  mutate(ratio = Number / sum(Number)) %>% # ratio of women to men for each year and degree type
   filter(Sex == "Female") %>%
   ggplot(aes(x = Year, y = ratio, color=Degree)) +
   geom_point() + geom_line() +
@@ -508,11 +526,11 @@ wsci %>%
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) 
 
 wsci %>%
-  filter(Field %in% c("Computer sciences", "Mathematics and statistics")) %>%
+  filter(Field %in% c("Computer sciences", "Mathematics and statistics")) %>% # filter to data science degrees
   group_by(Sex, Year, Degree) %>%
-  summarise(Number = sum(Number)) %>%
+  summarise(Number = sum(Number)) %>% # number of degrees earned by sex, year, degree type 
   group_by(Year, Degree) %>%
-  ggplot(aes(x = Year, y = Number, color=Sex)) +
+  ggplot(aes(x = Year, y = Number, color=Sex)) + # color plot by Sex
   geom_point() + geom_line() +
   facet_wrap(~Degree, scales="free_y")+
   ggtitle("Number of data science degrees across year and degree")
