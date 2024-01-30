@@ -258,9 +258,16 @@ The population from which the sample is drawn determines where the results of ou
 
 1. Does this sample appear to be a random sample from the general population of the USA? Why it is crucial to have randomness here? 
 
+\begin{itemize}
+  \item The sample does not appear to be a random. Our current data says that 75\% of the population is within 23-34 years of age. However, according to the Census, only 20\% of the population are between the ages of 23-34.\footnote{https://www.census.gov/data/tables/2022/demo/age-and-sex/2022-age-sex-composition.html} Furthermore, the educational attainment is slightly skewed towards some college and bachelor's degree in our sample. According to the Census, it shows that approximately 15\% of the population had completed some college, however, our sample shows that 42.7\% of the sample hand completed some college. Additionally, according to the Census, it shows that the 23\% of the population had completed a bachelor's degree, whereas our sample suggests that approximately 35.2\% had completed it.\footnote{https://www.census.gov/newsroom/press-releases/2023/educational-attainment-data.html}
+\end{itemize}
+  
+
 2. Does this sample appear to be a random sample from the MTURK population?
 
-Note: You can not provide evidence by simply looking at our data here. For example, you need to find distribution of education in our age group in US to see if the two groups match in distribution. You may need to gather some background information about the MTURK population to have a slight sense if this particular sample seem to a random sample from there... Please do not spend too much time gathering evidence. 
+\begin{itemize}
+  \item The sample does appear to be a random sample from the MTurk population. Namely, the sample skews younger than the general US population, which is consistent with our sample.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/} Additionally, our sample is more concentrated around the middle income categories (e.g., 20k - 75k), which is consistent with the MTurk sample, but lower income on average than the US population.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/}
+\end{itemize}
 
 ## Final estimate
 
