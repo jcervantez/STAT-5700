@@ -695,13 +695,15 @@ head(baseball)
 
 b). Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 ```{r}
-diff_log = baseball %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year)
+diff_log = baseball %>% filter(year %in% c(2012, 2013)) %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year)
+head(diff_log, 20)
 ```
 
 c). Create a long data table including: team, year, diff_log, win_pct
 
 ```{r}
-diff_log_df = diff_log %>% select(team, year, diff_log, win_pct)
+diff_log_df = baseball %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year) %>% select(team, year, diff_log, win_pct)
+head(diff_log_df, 20)
 ```
 
 
