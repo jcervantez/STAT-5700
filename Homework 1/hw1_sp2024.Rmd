@@ -348,7 +348,7 @@ for (i in 1:nrow(summary_table)) {
   }
 }
 
-
+table(d0$wharton)
 ```
 
 
@@ -393,7 +393,7 @@ To estimate the audience size of Wharton Business Radio Show (as of today). We w
   \end{itemize}
 \end{enumerate}
 
-After we ask these questions, we will calculating the proportion of Wharton listeners to total podcast listeners within the Prolific sample and applying this proportion to the known estimate of total 100 million podcast listeners to estimate the Wharton show's audience size. We use the total podcast estimate because the Wharton audience is influenced by various sources (e.g., Apple podcasts, Spotify, etc.), and not just a single source (e.g., SiriusXM.)
+After we ask these questions, we will calculating the proportion of Wharton listeners to total podcast listeners within the Prolific sample and applying this proportion to the known estimate of total 100 million podcast listeners\footnote{https://explodingtopics.com/blog/podcast-listeners} to estimate the Wharton show's audience size. We use the total podcast estimate because the Wharton audience is influenced by various sources (e.g., Apple podcasts, Spotify, etc.), and not just a single source (e.g., SiriusXM.)
 
 
 # Case study 2: Women in Science
