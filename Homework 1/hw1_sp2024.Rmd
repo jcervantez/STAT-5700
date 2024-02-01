@@ -366,8 +366,34 @@ Please fill in the google form to list your platform where surveys will be launc
 
 A good proposal will give an accurate estimation with the least amount of money used. 
 
+\textcolor{red}{\textbf{Proposal:}}
 
+To estimate the audience size of Wharton Business Radio Show (as of today). We will launch a study on [Prolific Academic](https://www.prolific.com/). According to the website, it costs approximately \$8/hr for each participant. Our survey should take 3-minutes, which means that it will cost \$0.40 per participant. We will recruit approximately 2,500 participants, for a total cost of \$1,000. We will use the following questions to estimate the Wharton Radio Show's audience size:
 
+\begin{enumerate}
+  \item Do you listen to podcasts? (Yes/No)
+  \item What types of podcasts do you listen to?
+  \begin{itemize}
+    \item Business
+    \item News
+    \item Entertainment
+    \item Educational
+    \item Sports
+    \item Other
+  \end{itemize}
+  \item Please select the podcasts that you actively listen to:
+  \begin{itemize}
+    \item Wharton Business Radio
+    \item The Joe Rogan Show
+    \item The Daily
+    \item Arm Chair Expert
+    \item Huberman Lab
+    \item Lex Fridman Podcast
+    \item Other [text entry]
+  \end{itemize}
+\end{enumerate}
+
+After we ask these questions, we will calculating the proportion of Wharton listeners to total podcast listeners within the Prolific sample and applying this proportion to the known estimate of total 100 million podcast listeners to estimate the Wharton show's audience size. We use the total podcast estimate because the Wharton audience is influenced by various sources (e.g., Apple podcasts, Spotify, etc.), and not just a single source (e.g., SiriusXM.)
 
 
 # Case study 2: Women in Science
