@@ -22,6 +22,8 @@ output:
     toc: yes
     toc_depth: '4'
 urlcolor: blue
+header-includes:
+    - \usepackage{xcolor}
 ---
 
 
@@ -139,10 +141,10 @@ d0 <- d0 |>
     age == "27`" ~ "27",                   # Change '27`' to '27'
     age == "Eighteen (18)" ~ "18",         # Change 'Eighteen (18)' to '18'
     TRUE ~ age                             # Set all other values to age
-  ),
-  age = as.numeric(age),                   # Convert age to numeric
+  )) |> 
+  mutate(age = as.numeric(age),                   # Convert age to numeric
   age = case_when(
-    age > 100 ~ NA_real_,                  # Replace age > 100 with NA
+    age > 100 | age < 18 ~ NA_real_,                  # Replace age > 100 with NA
     TRUE ~ age                             # Keep all other ages as they are
   ))
 
@@ -250,7 +252,20 @@ education_mapping <- c(
 d0$education <- factor(education_mapping[d0$education])
 
 summarize_data(d0)
+write.csv(d0,'new_data.csv',row.names = F)
 ```
+
+\textcolor{red}{\textbf{Summary Data Report:}}
+\begin{itemize}
+  \item \textbf{Sample Size:} The survey collected responses from 1,764 participants.
+  \item \textbf{Age Distribution:} The ages of participants range from 18 to 76 years, with a mean age of approximately 30.4 years. 
+  \item \textbf{Work Time:} The time taken to complete the survey ranged from 4 to 108 seconds, with an average time of approximately 22.5 seconds. This quick completion time reflects the survey's simplicity or possibly the respondents' familiarity with such tasks.
+  \item \textbf{Gender Distribution:} The distribution between genders was relatively balanced, with men representing approximately 57.6\% and women 42.4\% of the sample.
+  \item \textbf{Sirius Radio Listenership:} A significant majority, about 77.3\%, reported having listened to Sirius Radio, indicating a broad engagement among the survey participants. 
+  \item \textbf{Wharton Radio Listenership:} Only a small fraction, about 4\%, of respondents reported having listened to the Wharton Radio on SiriusXM, suggesting that while SiriusXM's reach is extensive, the specific audience for the Wharton show is relatively small.
+\end{itemize}
+
+
 
 ## Sample properties
 
@@ -266,19 +281,76 @@ The population from which the sample is drawn determines where the results of ou
 2. Does this sample appear to be a random sample from the MTURK population?
 
 \begin{itemize}
-  \item The sample does appear to be a random sample from the MTurk population. Namely, the sample skews younger than the general US population, which is consistent with our sample.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/} Additionally, our sample is more concentrated around the middle income categories (e.g., 20k - 75k), which is consistent with the MTurk sample, but lower income on average than the US population.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/}
+  \item The sample does appear to be a random sample from the MTurk population. Namely, the sample skews younger than the general US population, which is consistent with both the MTurk population and our sample.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/} Additionally, our sample is more concentrated around the middle income categories (e.g., 20k - 75k), which is consistent with the MTurk sample, but lower income on average than the US population.\footnote{https://www.cloudresearch.com/resources/blog/who-uses-amazon-mturk-2020-demographics/}
 \end{itemize}
 
 ## Final estimate
 
 Give a final estimate of the Wharton audience size by May of 2014. Assume that the sample is a random sample of the MTURK population, and that the proportion of Wharton listeners vs. Sirius listeners in the general population is the same as that in the MTURK population. Write a brief executive summary to summarize your findings and how you came to that conclusion.
 
-To be specific, you should include:
+\textbf{Goal of the Study:}
 
-1. Goal of the study
-2. Method used: data gathering, estimation methods
-3. Findings
-4. Limitations of the study. 
+The primary goal of this study was to estimate the audience size for the Wharton School's talk show on Sirius Radio, "Business Radio Powered by the Wharton School," as of May 2014. This estimation aimed to understand the show's reach among Sirius Radio listeners, leveraging a survey conducted via Amazon Mechanical Turk (MTurk).
+
+\textbf{Method Used:}
+
+Data were gathered through a survey launched on MTurk on May 24, 2014, targeting a maximum sample size of 2000 respondents over six days. The survey inquired about listenership to Sirius Radio and the Wharton Business Radio specifically, alongside demographic variables such as gender, age, and household income. The estimation method involved calculating the proportion of Wharton listeners to Sirius listeners within the MTurk sample and applying this proportion to the known total of 51.6 million Sirius Radio listeners to estimate the Wharton show's audience size.
+
+\textbf{Findings:}
+
+After cleaning the dataset, it revealed that out of 1358 respondents who have listened to Sirius Radio, 68 reported listening to the Wharton Business Radio. This results in a proportion of approximately 4.98% of Sirius listeners also tuning into the Wharton show. By applying this proportion to the total Sirius audience, we estimate the Wharton Business Radio's audience size to be around 2,570,549 listeners as of May 2014.
+
+```{r, results='asis'}
+options(scipen=999)
+# Step 1: Filter respondents who have listened to Sirius Radio
+sirius_listeners_df <- d0[d0$sirius == 'Yes', ]
+
+# Step 2: Count the number of respondents who have also listened to the Wharton Business Radio
+wharton_listeners_count <- sum(sirius_listeners_df$wharton == 'Yes', na.rm = T)
+
+# Step 3: Calculate the proportion of Wharton listeners among Sirius listeners
+proportion_wharton <- wharton_listeners_count / nrow(sirius_listeners_df)
+
+# Step 4: Total Sirius Radio listeners as of May 2014
+total_sirius_listeners <- 51600000
+
+# Estimate Wharton Business Radio's audience size
+estimated_wharton_audience <- total_sirius_listeners * proportion_wharton
+
+# Create a summary table
+summary_table <- data.frame(
+  Total_Sirius_Listeners = nrow(sirius_listeners_df),
+  Wharton_Listeners_Count = wharton_listeners_count,
+  Proportion_Wharton = proportion_wharton,
+  Estimated_Wharton_Audience = round(estimated_wharton_audience)
+) 
+
+# Transpose the summary table and convert it to a data frame
+summary_table <- t(summary_table) %>% as.data.frame()
+
+# Add row names as a new column for Attribute
+summary_table <- cbind(Attribute = rownames(summary_table), summary_table)
+
+# Rename the second column to Value
+colnames(summary_table)[2] <- "Value"
+
+# Ensure Value is of type numeric for formatting
+summary_table$Value <- as.numeric(summary_table$Value)
+
+# Now, your loop should look like this:
+for (i in 1:nrow(summary_table)) {
+  # Replace underscores with spaces for LaTeX output
+  attribute_name_latex_safe = gsub("_", " ", summary_table$Attribute[i])
+  
+  if (summary_table$Attribute[i] == "Estimated_Wharton_Audience") {
+    cat(paste0("\\textcolor{red}{", attribute_name_latex_safe, ": ", format(summary_table$Value[i], big.mark = ","), "}\\newline\n"))
+  } else {
+    cat(paste0(attribute_name_latex_safe, ": ", format(summary_table$Value[i], big.mark = ","), "\\newline\n"))
+  }
+}
+
+
+```
 
 
 ## New task
