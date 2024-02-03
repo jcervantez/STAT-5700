@@ -6,10 +6,6 @@ author:
 - Jose Cervantez
 date: 'Due: 11:59PM,  Feb 4th, 2024'
 output:
-  pdf_document:
-    number_sections: yes
-    toc: yes
-    toc_depth: '4'
   html_document:
     code_folding: show
     highlight: haddock
@@ -18,6 +14,10 @@ output:
     toc: yes
     toc_depth: 4
     toc_float: yes
+  pdf_document:
+    number_sections: yes
+    toc: yes
+    toc_depth: '4'
   word_document:
     toc: yes
     toc_depth: '4'
@@ -816,9 +816,9 @@ In this set up, the log difference is more appropriate because it allows us to g
 
 b). Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 
-```{r question_4.1b}
+```{r question_4.1b, warning=FALSE, message=FALSE}
 # Read in .csv data using better tidyverse function read_csv :)
-baseball <- read_csv("./data/baseball.csv")
+baseball <- read_csv("./data/baseball.csv", show_col_types = FALSE)
 
 # Examine the data structure:
 # str(baseball)
@@ -865,7 +865,7 @@ Look to .rmd document for the code.
 
 a). Which five teams had the highest increase in their payroll between years 2010 and 2014, inclusive?
 
-```{r question_4.2a, results = 'markup', warnings=FALSE, message=FALSE}
+```{r question_4.2a, results = 'markup', warning=FALSE, message=FALSE}
 # Print the top 5 teams with the highest increase in win percentage
 baseball_pay_summary <- baseball_long |>
   filter(year > 2010 & year <= 2014) |> # filter for years 2011 to 2014
@@ -889,7 +889,7 @@ The top five teams are the LA Dogdgers, the Texas Rangers, the San Diego Padres,
 
 b). Between 2010 and 2014, inclusive, which team(s) "improved" the most? That is, had the biggest percentage gain in wins?
 
-```{r question_4.2b, results='markup', warnings=FALSE, message=FALSE}
+```{r question_4.2b, results='markup', warning=FALSE, message=FALSE}
 # Create variable of the log difference in win percentage from the past year
 baseball_long <- baseball_long |>
   group_by(team) |> # group by team in ascending order
@@ -924,7 +924,7 @@ Is there evidence to support the hypothesis that higher increases in payroll on 
 
 Pick up a few statistics, accompanied with some data visualization, to support your answer. 
 
-```{r question_4.3, results='markup', warnings=FALSE, message=FALSE}
+```{r question_4.3, results='markup', warning=FALSE, message=FALSE}
 # Combine payroll and win percentage summaries
 baseball_total_summary <- inner_join(
   baseball_pay_summary,
