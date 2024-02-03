@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = FALSE, results = "hide", fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, readxl, tidyverse, magrittr, dplyr, ggplot2)
+pacman::p_load(ISLR, readxl, tidyverse, magrittr, dplyr, ggplot2, pander)
 ```
 
 
@@ -766,7 +766,7 @@ wsci %>%
 ```
 
 
-
+\newpage
 
 # Case study 3: Major League Baseball
 
@@ -778,6 +778,8 @@ Here are the datasets:
 -`baseball.csv`: long format
 
 Feel free to use either dataset to address the problems. 
+
+***
 
 ## EDA: Relationship between payroll changes and performance
 
@@ -792,34 +794,77 @@ a). To describe the increment of payroll in each year there are several possible
 
 Explain why the log difference is more appropriate in this setup.
 
-In this set up, the log difference is more appropriate because it allows us to get a better understanding of the percentage change of payroll between each year. Since players have different magnitudes in pay, taking the log allows us to base our analysis on the percentage change.
+**Answer**: In this set up, the log difference is more appropriate because it allows us to get a better understanding of the percentage change of payroll between each year. Since players have different magnitudes in pay, taking the log allows us to base our analysis on the percentage change.
 
 ```{r, include=FALSE}
-baseball = read.csv("./data/baseball.csv")
-head(baseball)
+
+# Read in .csv data using better tidyverse function read_csv :)
+baseball <- read_csv("./data/baseball.csv") 
+
+# Examine the data structure:
+# str(baseball)
+# head(baseball)
 ```
 
 b). Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 ```{r}
-diff_log = baseball %>% filter(year %in% c(2012, 2013)) %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year)
-head(diff_log, 20)
+
+# Create a new table with the log difference
+baseball_log_diff <- baseball |>
+  group_by(team) |> # group by team in ascending order
+  mutate(log_pay = log(payroll)) |> # create new variable log_pay
+  mutate(diff_log = log_pay - lag(log_pay)) |> # create new variable diff_log
+  ungroup() # ungroup the data
+
+# Code for checks: 
+# str(baseball_log_diff)
+# head(baseball_log_diff, 20)
 ```
 
 c). Create a long data table including: team, year, diff_log, win_pct
 
 ```{r}
-diff_log_df = baseball %>% group_by(team) %>% mutate(logpay = log(payroll)) %>% mutate(diff_log = logpay - lag(logpay), order_by=year) %>% select(team, year, diff_log, win_pct)
-head(diff_log_df, 20)
+
+# Create a new long data table
+baseball_long <- baseball_log_diff |>
+  select(team, year, diff_log, win_pct) |> # select the relevant columns
+  filter(!is.na(diff_log)) # remove NA values for diff_log
+
+# Code to check table is correct: 
+# str(baseball_long)
+# head(baseball_long, 20)
 ```
 
 
 ## Exploratory questions
 
-a). Which five teams had highest increase in their payroll between years 2010 and 2014, inclusive?
+a). Which five teams had the highest increase in their payroll between years 2010 and 2014, inclusive?
 
 The LA Dogers, Washington Nationals, San Diego Padres, Texas Rangers, and San Francisco Giants had the highest increase in their payrolls.
 
 ```{r}
+
+# Create new variable calculating increase in payroll between 2010 and 2014
+baseball_long |>
+  filter(year > 2010 & year <= 2014) |> # filter for years 2011 to 2014
+  group_by(team) |> # group by team
+  summarize(
+    diff_log_2010_2014 = sum(diff_log), # sum diff_long to find total increase
+    percent_change_2010_2014 = (exp(diff_log_2010_2014) - 1) * 100 # convert to percentage
+  ) |>
+  arrange(desc(diff_log_2010_2014)) |> # arrange in descending order
+  head(5) |> # select the top 5 teams 
+  pander()
+
+
+filter(!is.na(diff_log)) # remove NA values for diff_log
+
+test <- baseball_long %>% filter(year %in% c(2010, 2011, 2012, 2013, 2014)) %>% group_by(team) %>% mutate(total_diff_log=sum(diff_log)) %>% select(team, total_diff_log) %>% distinct() %>% arrange(desc(total_diff_log))
+
+test
+
+filter(baseball_long, team == "Los Angeles Dodgers")
+
 pay_raise = diff_log_df %>% filter(year %in% c(2010, 2011, 2012, 2013, 2014)) %>% group_by(team) %>% mutate(total_diff_log=sum(diff_log)) %>% select(team, total_diff_log) %>% distinct() %>% arrange(desc(total_diff_log))
 head(pay_raise, 5)
 ```
