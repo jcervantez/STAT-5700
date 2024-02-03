@@ -40,7 +40,9 @@ options(scipen = 0, digits = 3) # controls base R output
 if (!require("pacman")) {
   install.packages("pacman")
 }
-pacman::p_load(ISLR, readxl, tidyverse, magrittr, dplyr, ggplot2, pander)
+pacman::p_load(ISLR, readxl, tidyverse, magrittr, dplyr, ggplot2, pander, broom)
+
+panderOptions('digits', 3)
 ```
 
 \pagebreak
@@ -814,7 +816,7 @@ In this set up, the log difference is more appropriate because it allows us to g
 
 b). Create a new variable `diff_log=log(payroll_2013) - log(payroll_2012)`. Hint: use `dplyr::lag()` function.
 
-```{r question_4.1b, echo = TRUE, results = 'markup'}
+```{r question_4.1b}
 # Read in .csv data using better tidyverse function read_csv :)
 baseball <- read_csv("./data/baseball.csv")
 
@@ -834,11 +836,14 @@ baseball_log_diff <- baseball |>
 head(baseball_log_diff, 20)
 ```
 
+\textcolor{red}{\textbf{Answer:}} 
+Look to .rmd document for the code.
+
 \hrulefill
 
 c). Create a long data table including: team, year, diff_log, win_pct
 
-```{r question_4.1c, echo = TRUE}
+```{r question_4.1c}
 # Create a new long data table
 baseball_long <- baseball_log_diff |>
   select(team, year, diff_log, win_pct) |> # select the relevant columns
@@ -847,38 +852,71 @@ baseball_long <- baseball_log_diff |>
 # Check table is correct:
 # str(baseball_long)
 head(baseball_long, 20)
+
+filter(baseball, team == "Pittsburgh Pirates", year >= 2010)
 ```
 
-\hrulefill
+\textcolor{red}{\textbf{Answer:}} 
+Look to .rmd document for the code.
+
+\newpage
 
 ## Exploratory questions
 
 a). Which five teams had the highest increase in their payroll between years 2010 and 2014, inclusive?
 
-```{r question_4.2a, echo = TRUE}
-# Print table of top 5 teams with increase in payroll between 2010 and 2014
-baseball_long |>
+```{r question_4.2a, results = 'markup', warnings=FALSE, message=FALSE}
+# Print the top 5 teams with the highest increase in win percentage
+baseball_pay_summary <- baseball_long |>
   filter(year > 2010 & year <= 2014) |> # filter for years 2011 to 2014
   group_by(team) |> # group by team
   summarize(
     diff_log_2010_2014 = sum(diff_log), # sum diff_long to find total increase
     percent_change_2010_2014 = (exp(diff_log_2010_2014) - 1) * 100 # convert to percentage
   ) |>
-  arrange(desc(diff_log_2010_2014)) |> # arrange in descending order
+  arrange(desc(diff_log_2010_2014)) # arrange in descending order
+
+# Print the top 5 teams with the highest increase in payroll
+baseball_pay_summary |>
   head(5) |> # select the top 5 teams
   pander() # print table in pretty format
 ```
+
 \textcolor{red}{\textbf{Answer:}} 
 The top five teams are the LA Dogdgers, the Texas Rangers, the San Diego Padres, the Pittsburg Pirates, and the Washington Nationals. (see table above)
 
-~~The LA Dogers, Washington Nationals, San Diego Padres, Texas Rangers, and San Francisco Giants had the highest increase in their payrolls.~~
+\hrulefill
 
 b). Between 2010 and 2014, inclusive, which team(s) "improved" the most? That is, had the biggest percentage gain in wins?
-The Pittsburgh Pirates improved the most.
-```{r}
-# win_gains = diff_log_df %>% filter(year %in% c(2010, 2014)) %>% group_by(team) %>% mutate(win_gain=win_pct-lag(win_pct), order_by=year) %>% select(team, win_gain) %>% drop_na(win_gain) %>% arrange(desc(win_gain))
-# head(win_gains, 5)
+
+```{r question_4.2b, results='markup', warnings=FALSE, message=FALSE}
+# Create variable of the log difference in win percentage from the past year
+baseball_long <- baseball_long |>
+  group_by(team) |> # group by team in ascending order
+  mutate(log_win_pct = log(win_pct)) |> # create new variable log_pay
+  mutate(diff_log_win_pct = log_win_pct - lag(log_win_pct)) |> # create variable
+  ungroup() # ungroup the data
+
+# Create dataframe of changes in win percentage for teams between 2010 and 2014
+baseball_win_summary <- baseball_long |>
+  filter(year > 2010 & year <= 2014) |> # filter for years 2011 to 2014
+  group_by(team) |> # group by team
+  summarize(
+    diff_log_win_pct_2010_2014 = sum(diff_log_win_pct), # sum diff_long to find increase
+    percent_change_win_pct_2010_2014 = (exp(diff_log_win_pct_2010_2014) - 1) * 100 # convert to percentage
+  ) |>
+  arrange(desc(diff_log_win_pct_2010_2014)) # arrange in descending order
+
+# Print the top 5 teams with the highest increase in win percentage
+baseball_win_summary |>
+  head(5) |> # select the top 5 teams
+  pander() # print table in pretty format
 ```
+
+\textcolor{red}{\textbf{Answer:}} 
+The Pittsburgh Pirates improved the most (see table above).
+
+\newpage
 
 ## Do log increases in payroll imply better performance? 
 
@@ -886,6 +924,77 @@ Is there evidence to support the hypothesis that higher increases in payroll on 
 
 Pick up a few statistics, accompanied with some data visualization, to support your answer. 
 
+```{r question_4.3, results='markup', warnings=FALSE, message=FALSE}
+# Combine payroll and win percentage summaries
+baseball_total_summary <- inner_join(
+  baseball_pay_summary,
+  baseball_win_summary,
+  by = "team"
+)
+
+# Run regression of win percentage on yearly increase in payroll
+ols_1 <- lm(diff_log_win_pct_2010_2014 ~ diff_log_2010_2014, data = baseball_total_summary)
+
+# Print the regression summaries
+pander(tidy(ols_1), caption = "Regression of difference in ln(win percentage) from 2010-2014 on difference in ln(payroll) from 2010-2014")
+
+ggplot(baseball_total_summary, aes(x = diff_log_2010_2014, y = diff_log_win_pct_2010_2014)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Win Percentage Increases vs. Payroll Increases (2010-2014)",
+    x = "2010-2014 Difference in ln(payroll)",
+    y = "2010-2014 Difference in ln(win percentage)"
+  )
+
+```
+
+\textcolor{red}{\textbf{Answer:}} 
+The table of statistics above and the corresponding graph provides some evidence that higher % changes in payroll on the log scale correlate with higher % changes in win percentage. However, it's important to note that even though higher % changes in payroll **predict** higher % changes in win percentage, it doesn't necessarily mean that higher % changes in payroll **cause** higher % changes in win percentage. This is because there may be ommited variables that are correlated with both payroll and win percentage – so we cannot conclusively say that one "leads" to the other. 
+
+If we regress % change in win percentage on % change in payroll, we find that although the results directionally affirm our hypothesis, they are not statistically significant. In fact, the r-square for this model is extremely low, which makes it plausible that there there is omitted variables which would bias this estimate. This implies the results are only suggestive, and not conclusive.
+
+\newpage
+
 ## Comparison
 
 Which set of factors are better explaining performance? Yearly payroll or yearly increase in payroll? What criterion is being used? 
+
+\textcolor{red}{\textbf{Answer:}} 
+This question isn't very clear as its not clear how "performance" is being defined (e.g., win percentage, percentage point improvement in win percentage, percentage increase in win percentage, etc.). 
+
+**If we assume that "performance" is being defined as win percentage**, then we can compare the two models to see which variable better explains the variance in win percentage using the the R-Squared metric. Below, you can find two regressions: one with win percentage regressed on payroll, and another with win percentage regressed on the log difference in payroll. The R-Squared for the first model is 0.12, while the R-Squared for the second model is 0.03. This suggests that the yearly payroll is significantly better at explaining the variance in win percentage than the yearly increase in payroll.
+
+```{r question_4.4a, results='markup'}
+
+# Run regression of win percentage on yearly increase in payroll
+lm_1 <- lm(win_pct ~ diff_log, data = baseball_log_diff)
+
+# Run regression of win percentage on yearly payroll
+lm_2 <- lm(win_pct ~ payroll, data = baseball_log_diff)
+
+# Set options for scientific notation
+options(scipen = 0)
+
+# Print the regression summaries
+pander(tidy(lm_1), caption = "Regression of win percentage on yearly increase in payroll")
+pander(tidy(lm_2), caption = "Regression of win percentage on yearly payroll")
+
+```
+
+We can also look at another criterion to compare models against one another: the Bayesian Information Criterion (BIC). The BIC is a criterion for model selection among a finite set of models, and can provide a rough approximation to the logarithm of the Baye's factor (. The difference in BIC between the two models is 115, which is an incredibly large Bayes factor (approximately equal to $e^{(115/2)}$). This shows convincingly that payroll is better at explaining win percentage than yearly increase in payroll.
+
+```{r question_4.4b, results='markup'}
+
+# Calculate Bayesian Information Criterion for both models using glm and the identity link
+glm_1 <- glm(win_pct ~ diff_log, family = gaussian(link = "identity"), data = baseball_log_diff)
+glm_2 <- glm(win_pct ~ payroll, family = gaussian(link = "identity"), data = baseball_log_diff)
+
+# Extract BIC from the models
+payroll_BIC <- BIC(glm_2) 
+payroll_increase_BIC <- BIC(glm_1) 
+BIC_delta <- payroll_increase_BIC - payroll_BIC
+
+# Create a table displaying the BIC for both models and the difference
+pander(cbind(payroll_increase_BIC, payroll_BIC, BIC_delta), caption = "BIC comparison for both models")
+```
