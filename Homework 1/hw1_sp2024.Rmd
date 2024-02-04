@@ -351,8 +351,6 @@ for (i in 1:nrow(summary_table)) {
     cat(paste0(attribute_name_latex_safe, ": ", format(summary_table$Value[i], big.mark = ","), "\\newline\n"))
   }
 }
-
-table(d0$wharton)
 ```
 
 
