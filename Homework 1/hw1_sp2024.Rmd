@@ -990,6 +990,7 @@ We can also look at another criterion to compare models against one another: the
 glm_1 <- glm(win_pct ~ diff_log, family = gaussian(link = "identity"), data = baseball_log_diff)
 glm_2 <- glm(win_pct ~ payroll, family = gaussian(link = "identity"), data = baseball_log_diff)
 
+
 # Extract BIC from the models
 payroll_BIC <- BIC(glm_2) 
 payroll_increase_BIC <- BIC(glm_1) 
