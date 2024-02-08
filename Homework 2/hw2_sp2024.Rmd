@@ -29,8 +29,9 @@ urlcolor: blue
 knitr::opts_chunk$set(echo = FALSE, fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
+devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra) # add the packages needed!!!
 ```
 
 
@@ -212,26 +213,122 @@ corrplot(corr_table, method="color")
 4. PCA on 10 esteem measurements. (centered but no scaling)
 
     a) Report the PC1 and PC2 loadings. Are they unit vectors? Are they orthogonal? 
+   
+    \textcolor{red}{\textbf{Answer:}} The PC1 loading is (-0.235, -0.244, 0.279, -0.261, 0.312, -0.313, -0.299, 0.393, 0.398, 0.376). The PC2 loading is (0.374, 0.367, -0.149, 0.321, -0.131, 0.209, 0.163, 0.332, 0.578, 0.260). As shown in the table below, PC1 and PC2 both are unit vectors and are orthogonal to each other.
+    
+```{r}
+  pca <- prcomp(esteem, scale=FALSE, center=T)
+  names(pca)
+  
+  # get loadings of PCA loadings
+  pca_loadings = pca$rotation[, c(1,2)]
+  knitr::kable(pca_loadings)
+  
+  # check the loadings are unit vectors and all orthogonal
+  unit_orth = round(t(pca$rotation) %*% pca$rotation)[c(1,2), c(1,2)]
+  knitr::kable(unit_orth)
+  
+  # plot bar plot of PCA
+  plot(pca)
+
+```
   
     b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
+    
+    TODO: can someone see if they can interpet PC2...
+    
+     \textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
   
     c) How is the PC1 score obtained for each subject? Write down the formula.
     
+     \textcolor{red}{\textbf{Answer:}} $$PC1 = -0.235 \times (Q1_score) + -0.244 \times (Q2_score) + 0.279 \times (Q3_score) + -0.261 \times (Q4_score) + 0.312 \times (Q5_score) + -0.313 \times (Q6_score) + -0.299 \times (Q7_score) + 0.393 \times (Q8_score) + 0.398 \times (Q9_score) + 0.376 \times (Q10_score$$.
+    
     d) Are PC1 scores and PC2 scores in the data uncorrelated? 
     
+    \textcolor{red}{\textbf{Answer:}} Yes, the PC1 and PC2 scores are uncorrelated. As shown in the table, the covariance of PC1 and PC2 is 0, implying that their correlation is 0.
+    
+    ```{r, results="markup"}
+    # get correlation between PCA scores
+    cov_matrix = round(cov(pca$x), 4)[c(1,2),c(1,2)]
+    knitr::kable(cov_matrix)
+    ```
+    
     e) Plot PVE (Proportion of Variance Explained) and summarize the plot. 
+    
+    \textcolor{red}{\textbf{Answer:}} The plot shows that PC1 explains almost 50% of the variation and PC2 explains a little over 10% of the variance. We can also use this scree plot to determine the number of PCs that would be appropriate to use with our data. Using the elbow method, we see that using 2 PCs would be appropriate.
+    
+    ```{r}
+    # PVE plot
+    plot(summary(pca)$importance[2, ],
+     ylab="PVE",
+     xlab="Number of PCs",
+     pch = 16,
+     main="Scree Plot of PVE") 
+    ```
   
     f) Also plot CPVE (Cumulative Proportion of Variance Explained). What proportion of the variance in the data is explained by the first two principal components?
+    
+    \textcolor{red}{\textbf{Answer:}} Approximately 60% of variance in the data is explained by the first 2 PCs.
+    
+    ```{r}
+    # CPVE plot
+    plot(summary(pca)$importance[3, ], pch=16,
+    ylab="Cumulative PVE",
+    xlab="Number of PCs",
+    main="Scree Plot of Cumulative PVE")
+    ```
   
     g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
+    
+    TODO: PC2 interpretation???
+    
+    \textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other.
+    
+    ```{r}
+ggbiplot(pca, obs.scale = 2, var.scale = 1) + 
+scale_color_discrete(name = '') +
+labs(title = "Biplot of PCs") +
+theme_bw()
+
+    ```
 
 5. Apply k-means to cluster subjects on the original esteem scores
 
     a) Find a reasonable number of clusters using within sum of squared with elbow rules.
     
+    \textcolor{red}{\textbf{Answer:}} Using the elbow method, it appears that 2 is a reasonable number of clusters.
+    
+    ```{r}
+    kmeans = fviz_nbclust(esteem, kmeans, method = "wss")
+    kmeans
+    ```
+    
     b) Can you summarize common features within each cluster?
     
+    \textcolor{red}{\textbf{Answer:}} Cluster 1 is characterized by higher scores for questions 3, 5, 8, 9, and 10. Cluster 2 is characterized by higher scores for questions 1, 2, 4, 6, and 7. This seems to roughly correspond to PC1, which can be interpreted as the approximate difference betwen the total score for questions 3, 5, 8, 9, and 10 and the total score for questions 1, 2, 4, 6, and 7.
+    
+    ```{r, results="markup"}
+    esteem.kmeans = kmeans(esteem, centers = 2, nstart=10)
+    
+    esteem$cluster = esteem.kmeans$cluster
+    esteem
+    
+    mean_table = aggregate(esteem, by = list(esteem$cluster), FUN = mean)
+    knitr::kable(mean_table)
+    ```
+    
     c) Can you visualize the clusters with somewhat clear boundaries? You may try different pairs of variables and different PC pairs of the esteem scores.
+    
+     \textcolor{red}{\textbf{Answer:}} When we cluster by PC1 and PC2, we see a very clear boundary given by PC1. Specifically, group 1 is almost entirely to the left of PC1 = 0, while group 2 is almost entirely to the right of PC2 = 0.
+    
+    ```{r}
+    data.frame(pc1 = pca$x[, 1], 
+          pc2 = pca$x[, 2],
+          group = as.factor(esteem.kmeans$cluster)) %>%
+    ggplot(aes(x = pc1, y = pc2, col = group)) +
+    geom_point() +
+    ggtitle("Clustering over PC1 and PC2")
+    ```
 
 
 6. We now try to find out what factors are related to self-esteem? PC1 of all the Esteem scores is a good variable to summarize one's esteem scores. We take PC1 as our response variable. 
