@@ -29,7 +29,7 @@ urlcolor: blue
 knitr::opts_chunk$set(echo = FALSE, fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
-devtools::install_github("vqv/ggbiplot") 
+# devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
 pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra) # add the packages needed!!!
 ```
@@ -342,12 +342,69 @@ theme_bw()
       - Household environment: Imagazine, Inewspaper, Ilibrary, MotherEd, FatherEd, FamilyIncome78. Do set indicators `Imagazine`, `Inewspaper` and `Ilibrary` as factors. 
     
       - You may use PC1 of ASVAB as level of intelligence
+      
+       \textcolor{red}{\textbf{Answer:}} See .rmd file for code. I created a dataframe that contains all of the above listed variables. Income87 has some negative values, so I use 0 for any negative values. Since we cannot take the log of 0, I use log1p, which takes the log(1 + [value]). I also merge in columns for PC1 of the Esteem scores and PC1 of the ASVAB scores, for which I ran PCA for the ASVAB data. 
+      
+```{r}
+  # PCA of ASVAB
+
+  intel_cols = c("AFQT", "Coding", "Auto", "Mechanic", "Elec", "Science", "Math", "Arith", "Word", "Parag", "Number")
+  asvab = data %>% select(all_of(intel_cols))
+  pca_asvab <- prcomp(asvab, scale=FALSE, center=T)
+  # get loadings of PCA loadings
+  pc1_asvab = pca_asvab$rotation[, 1]
+
+  esteem_cols = names(select(data, contains("Esteem87")))
+
+  # Calculate log(Income87). There are some negative income values so we use 0 as the lowest possible income (so we can use log1p)
+  data = data %>%
+    mutate(LogIncome87 = log1p(pmax(0, Income87)))
+  
+  data$PC1_Esteem = as.vector(as.matrix(data[,esteem_cols]) %*% pca$rotation[,1])
+  data$PC1_asvab = as.vector(as.matrix(data[,intel_cols]) %*% pc1_asvab)
+  
+  # Calculate BMI and convert weight to kg and height to m.
+  data$bmi = (data$Weight05 * 0.453592) / (data$HeightFeet05 * 0.3048)^2
+  
+  # select relevant columns and convert Imagazine, Inewspaper, and Ilibrary to factors
+  data87 = data %>%
+    mutate_at(c("Gender", "Imagazine", "Inewspaper", "Ilibrary"), as.factor) %>%
+    select(c("Gender", "Education05", "LogIncome87", "Imagazine", "Inewspaper", "Ilibrary", "MotherEd", "FatherEd", "FamilyIncome78", "PC1_Esteem", "PC1_asvab"))
+  
+  summary(data87)
+```
         
     b)   Run a few regression models between PC1 of all the esteem scores and suitable variables listed in a). Find a final best model with your **own clearly defined criterion**. 
 
       - How did you land this model? Run a model diagnosis to see if the linear model assumptions are reasonably met. 
         
       - Write a summary of your findings. In particular, explain what and how the variables in the model affect one's self-esteem. 
+      
+```{r}
+model1 = lm(PC1_Esteem ~ Gender + Education05 + LogIncome87 + Imagazine + Inewspaper + Ilibrary + MotherEd + FatherEd + FamilyIncome78 + PC1_asvab, data87)
+summary(model1)
+
+par(mfrow=c(1,2), mar=c(5,2,4,2), mgp=c(3,0.5,0)) # plot(fit3) produces several plots
+plot(model1, 1, pch=16) # residual plot
+abline(h=0, col="blue", lwd=2)
+plot(model1, 2) # qqplot
+
+model2 = lm(PC1_Esteem ~ Gender + Education05 + LogIncome87 + Inewspaper + PC1_asvab, data87)
+summary(model2)
+
+par(mfrow=c(1,2), mar=c(5,2,4,2), mgp=c(3,0.5,0)) # plot(fit3) produces several plots
+plot(model2, 1, pch=16) # residual plot
+abline(h=0, col="blue", lwd=2)
+plot(model2, 2) # qqplot
+
+model3 = lm(PC1_Esteem ~ Gender + Education05 + LogIncome87 + PC1_asvab, data87)
+summary(model3)
+
+par(mfrow=c(1,2), mar=c(5,2,4,2), mgp=c(3,0.5,0)) # plot(fit3) produces several plots
+plot(model3, 1, pch=16) # residual plot
+abline(h=0, col="blue", lwd=2)
+plot(model3, 2) # qqplot
+```
         
 
 
