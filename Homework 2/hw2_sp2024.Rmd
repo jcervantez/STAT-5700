@@ -380,6 +380,12 @@ theme_bw()
         
       - Write a summary of your findings. In particular, explain what and how the variables in the model affect one's self-esteem. 
       
+\textcolor{red}{\textbf{Answer:}} 
+
+(i) model4 is my final best model. This model uses PC1 of the esteem scores as the dependent variables and the following as explanatory variables: gender, education level in 2005, log income in 1987, family income in 1978, and PC1 of ASVAB scores. I landed this model by running multiple regression models and looking into the residual and QQ plots. In all the models I ran, the plots provided evidence that the linearity and homoscedasity assumptions are met because the residuals follow a symmetric pattern around h=0 and are evenly distributed within a band. The QQ plot also provided evidence of the normality assumption being met due to the presence of a well fitted straight line. I decided not to use statistical significance as a criterion because the significance did not seem very informative -- in the model that incorporated all variables, the intercept, IMagazine, and PC1 of the ASVAB scores were statistically significant. Intuitively, whether a family reads a magazine or not should not affect one's self-esteem. Reading a magazine could be correlated to income, and if this is the case, then we would not need to include this redudant variable. Additionally, Ward, Greenhill, & Bakke (2010) show that statistically significant models can actually have very low predictive power; thus, choosing variables based on statistical significance does not seem like a well-informed criterion.
+
+(ii) When we use model4 as the final best model, we see that gender, education, income, family income, and intelligence all affect one's self-esteem. Specifically, being male and having more education, a higher income in 1987, a higher family income in 1978, and a higher score on the ASVAB as captured by PC1 is associated with having a higher self-esteem, as captured by PC1 of the 1987 esteem scores.
+      
 ```{r}
 model1 = lm(PC1_Esteem ~ Gender + Education05 + LogIncome87 + Imagazine + Inewspaper + Ilibrary + MotherEd + FatherEd + FamilyIncome78 + PC1_asvab, data87)
 summary(model1)
@@ -404,6 +410,15 @@ par(mfrow=c(1,2), mar=c(5,2,4,2), mgp=c(3,0.5,0)) # plot(fit3) produces several 
 plot(model3, 1, pch=16) # residual plot
 abline(h=0, col="blue", lwd=2)
 plot(model3, 2) # qqplot
+
+model4 = lm(PC1_Esteem ~ Gender + Education05 + LogIncome87 + FamilyIncome78 + PC1_asvab, data87)
+summary(model4)
+
+par(mfrow=c(1,2), mar=c(5,2,4,2), mgp=c(3,0.5,0)) # plot(fit3) produces several plots
+plot(model4, 1, pch=16) # residual plot
+abline(h=0, col="blue", lwd=2)
+plot(model4, 2) # qqplot
+
 ```
         
 
