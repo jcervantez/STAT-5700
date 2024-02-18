@@ -31,7 +31,7 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 # devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster) # add the packages needed!!!
 ```
 
 
@@ -142,7 +142,7 @@ Load the data. Do a quick EDA to get familiar with the data set. Pay attention t
 \textcolor{red}{\textbf{Answer:}} There are no missing values as there are no null values.
 
 ```{r}
-data <- read.csv('data/NLSY79.csv', header = T, stringsAsFactors = F)
+data <- read.csv("data/NLSY79.csv", header = T, stringsAsFactors = F)
 str(data)
 summary(data)
 levels(as.factor(data$Job05))
@@ -444,19 +444,107 @@ brca <- fread("data/brca_subtype.csv")
 
 # get the sub-type information
 brca_subtype <- brca$BRCA_Subtype_PAM50
-brca <- brca[,-1]
+#brca <- brca[,-1]
+table(brca_subtype)
+
 ```
 
 1. Summary and transformation
 
     a) How many patients are there in each sub-type? 
+    
+    \begin{itemize}
+      \item Basal: 208
+      \item Her2: 91
+      \item LumA: 628
+      \item LumB: 233
+    \end{itemize}
 
     b) Randomly pick 5 genes and plot the histogram by each sub-type. 
+    
+    * See plot below
 
     c) Clean and transform the mRNA sequences by first remove gene with zero count and no variability and then apply logarithmic transform. 
+    
+    
+```{r}
+################
+## Histograms ##
+################
+
+set.seed(124)
+random_genes <- sample(colnames(brca)[-1], 5, replace = FALSE)
+
+## Histogram function
+plot_gene_histograms <- function(data, genes) {
+  plots <- list()
+  for (gene in genes) {
+    for (subtype in unique(data$BRCA_Subtype_PAM50)) {
+      subset_data <- data[data$BRCA_Subtype_PAM50 == subtype, ]
+      p <- ggplot(subset_data, aes_string(x=gene)) +
+        geom_histogram(bins=30, fill="skyblue", color="black", alpha=0.7) +
+        labs(title=paste(gene, ":", subtype), x=NULL, y=NULL) + # Remove redundant axis titles
+        theme_minimal() +
+        theme(legend.position="none", # Hide legend
+              plot.title=element_text(size=10), # Reduce title size
+              axis.text.x=element_text(size=8), # Reduce axis text size
+              axis.text.y=element_text(size=6)) # Reduce axis text size
+      plots[[paste(gene, subtype)]] <- p
+    }
+  }
+  return(plots)
+}
+
+# Generate and arrange plots
+plots <- plot_gene_histograms(brca, random_genes)
+plot_grid <- do.call(patchwork::wrap_plots, c(plots, ncol = 4))
+
+# Display the arranged plot grid
+plot_grid
+
+
+################
+### Cleaning ###
+################
+
+library(dplyr)
+
+# Step 1 & 2: Filter out genes with only zero counts and no variability
+genes_to_keep <- brca %>% 
+  select(-BRCA_Subtype_PAM50) %>%
+  summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
+  select_if(~ . == TRUE) %>%
+  names()
+
+brca_clean <- brca %>%
+  select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
+
+# Step 3: Apply logarithmic transformation
+brca_transformed <- brca_clean %>%
+  mutate(across(-BRCA_Subtype_PAM50, log1p))
+
+```
 
 
 2. Apply kmeans on the transformed dataset with 4 centers (4 clusters) and output the discrepancy table between the real sub-type `brca_subtype` and the cluster labels.
+
+```{r}
+features <- brca_transformed %>% select(-BRCA_Subtype_PAM50)
+
+# Apply k-means with 4 centers
+set.seed(124) 
+kmeans_result <- kmeans(features, centers = 4)
+
+# Add the cluster labels back to the dataset to compare with actual subtypes
+brca_with_clusters <- brca_transformed %>%
+  mutate(Cluster = as.factor(kmeans_result$cluster))
+
+# Create a discrepancy table
+discrepancy_table <- table(brca_with_clusters$BRCA_Subtype_PAM50, brca_subtype)
+
+# View the discrepancy table
+print(discrepancy_table)
+```
 
 3. Spectrum clustering: to scale or not to scale?
 
