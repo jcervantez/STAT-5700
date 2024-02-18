@@ -540,7 +540,7 @@ brca_with_clusters <- brca_transformed %>%
   mutate(Cluster = as.factor(kmeans_result$cluster))
 
 # Create a discrepancy table
-discrepancy_table <- table(brca_with_clusters$BRCA_Subtype_PAM50, brca_subtype)
+discrepancy_table <- table(brca_subtype, brca_with_clusters$Cluster)
 
 # View the discrepancy table
 print(discrepancy_table)
