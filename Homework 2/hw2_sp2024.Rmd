@@ -444,7 +444,6 @@ brca <- fread("data/brca_subtype.csv")
 
 # get the sub-type information
 brca_subtype <- brca$BRCA_Subtype_PAM50
-#brca <- brca[,-1]
 table(brca_subtype)
 
 ```
@@ -466,8 +465,14 @@ table(brca_subtype)
 
     c) Clean and transform the mRNA sequences by first remove gene with zero count and no variability and then apply logarithmic transform. 
     
+    d) Apply PCA to the transformed data. How many PCs should we use and why? 
     
-```{r}
+    * According to the scree plot, it would be best to use 2 PCs. The plot shows a clear elbow after the 2nd PC, and the proportion of variance explained looks significantly lower after the 2nd PC.
+
+    
+    
+    
+```{r echo=TRUE}
 ################
 ## Histograms ##
 ################
@@ -509,41 +514,59 @@ plot_grid
 
 library(dplyr)
 
-# Step 1 & 2: Filter out genes with only zero counts and no variability
-genes_to_keep <- brca %>% 
-  select(-BRCA_Subtype_PAM50) %>%
-  summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
-  select_if(~ . == TRUE) %>%
-  names()
+# Filter out genes with only zero counts and no variability
+# genes_to_keep <- brca %>% 
+#   select(-BRCA_Subtype_PAM50) %>%
+#   summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
+#   select_if(~ . == TRUE) %>%
+#   names()
+# 
+# brca_clean <- brca %>%
+#   select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
+# 
+# # Apply logarithmic transformation
+# brca_transformed <- brca_clean %>%
+#   mutate(across(-BRCA_Subtype_PAM50, log1p))
 
-brca_clean <- brca %>%
-  select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
 
-# Step 3: Apply logarithmic transformation
-brca_transformed <- brca_clean %>%
-  mutate(across(-BRCA_Subtype_PAM50, log1p))
+brca_transformed <- readRDS("data/brca_transformed.rds")
 
+################
+##### PCA ######
+################
+
+# brca_pca <- prcomp(brca_transformed %>% select(-BRCA_Subtype_PAM50), scale. = T, center=TRUE)
+# 
+# brca_pca$rotation <- brca_pca$rotation[, 1:20]
+# brca_pca$x <- brca_pca$x[, 1:20]
+# saveRDS(brca_pca, "data/brca_pca.rds")
+
+brca_pca <- readRDS("data/brca_pca.rds")
+
+
+# Plot the scree plot
+pve <- summary(brca_pca)$importance[2, 1:10]
+plot(pve, type="b", pch = 19, frame = FALSE)
 ```
+
 
 
 2. Apply kmeans on the transformed dataset with 4 centers (4 clusters) and output the discrepancy table between the real sub-type `brca_subtype` and the cluster labels.
 
-```{r}
+```{r, result="asis"}
 features <- brca_transformed %>% select(-BRCA_Subtype_PAM50)
 
 # Apply k-means with 4 centers
 set.seed(124) 
-kmeans_result <- kmeans(features, centers = 4)
+kmeans_result <- readRDS("data/brca_kmeans.rds")
 
 # Add the cluster labels back to the dataset to compare with actual subtypes
 brca_with_clusters <- brca_transformed %>%
   mutate(Cluster = as.factor(kmeans_result$cluster))
 
 # Create a discrepancy table
-discrepancy_table <- table(brca_subtype, brca_with_clusters$Cluster)
+table(brca_subtype, brca_with_clusters$Cluster)
 
-# View the discrepancy table
-print(discrepancy_table)
 ```
 
 3. Spectrum clustering: to scale or not to scale?
