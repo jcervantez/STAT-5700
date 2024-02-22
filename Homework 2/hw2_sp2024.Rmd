@@ -235,8 +235,6 @@ corrplot(corr_table, method="color")
   
     b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
     
-    TODO: can someone see if they can interpet PC2...
-    
      \textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
   
     c) How is the PC1 score obtained for each subject? Write down the formula.
@@ -280,9 +278,7 @@ corrplot(corr_table, method="color")
   
     g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
     
-    TODO: PC2 interpretation???
-    
-    \textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other.
+    \textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other. There still does not seem to be a clear interpretation of PC2, but PC2 seems to represent the rough difference between the total scores for questions 8, 9, 10 and questions 1-7.
     
     ```{r}
 ggbiplot(pca, obs.scale = 2, var.scale = 1) + 
