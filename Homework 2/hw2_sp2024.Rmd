@@ -510,19 +510,23 @@ plot_grid
 
 library(dplyr)
 
-# Filter out genes with only zero counts and no variability
-# genes_to_keep <- brca %>% 
-#   select(-BRCA_Subtype_PAM50) %>%
-#   summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
-#   select_if(~ . == TRUE) %>%
-#   names()
-# 
-# brca_clean <- brca %>%
-#   select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
-# 
-# # Apply logarithmic transformation
-# brca_transformed <- brca_clean %>%
-#   mutate(across(-BRCA_Subtype_PAM50, log1p))
+## Filter out genes with only zero counts and no variability
+genes_to_keep <- brca %>%
+  select(-BRCA_Subtype_PAM50) %>%
+  summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
+  select_if(~ . == TRUE) %>%
+  names()
+
+brca_clean <- brca %>%
+  select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
+
+# Apply logarithmic transformation
+brca_transformed <- brca_clean %>%
+  mutate(across(-BRCA_Subtype_PAM50, log1p))
+
+# Save the transformed data
+
+## saveRDS(brca_transformed, "data/brca_transformed.rds")
 
 
 brca_transformed <- readRDS("data/brca_transformed.rds")
@@ -531,7 +535,7 @@ brca_transformed <- readRDS("data/brca_transformed.rds")
 ##### PCA ######
 ################
 
-# brca_pca <- prcomp(brca_transformed %>% select(-BRCA_Subtype_PAM50), scale. = T, center=TRUE)
+brca_pca <- prcomp(brca_transformed %>% select(-BRCA_Subtype_PAM50), scale. = T, center=TRUE)
 # 
 # brca_pca$rotation <- brca_pca$rotation[, 1:20]
 # brca_pca$x <- brca_pca$x[, 1:20]
@@ -556,6 +560,10 @@ plot(summary(brca_pca)$importance[3, 1:10], ylab="Cumulative PVE", xlab="Number 
 
 ```{r, result="asis"}
 features <- brca_transformed %>% select(-BRCA_Subtype_PAM50)
+
+brca_kmeans <- kmeans(features, centers = 4, nstart = 10)
+
+saveRDS(brca_kmeans, "data/brca_kmeans.rds")
 
 # Apply k-means with 4 centers
 set.seed(124) 
