@@ -307,8 +307,7 @@ theme_bw()
     esteem.kmeans = kmeans(esteem, centers = 2, nstart=10)
     
     esteem$cluster = esteem.kmeans$cluster
-    esteem
-    
+
     mean_table = aggregate(esteem, by = list(esteem$cluster), FUN = mean)
     knitr::kable(mean_table)
     ```
