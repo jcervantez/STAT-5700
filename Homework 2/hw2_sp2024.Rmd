@@ -31,7 +31,7 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 # devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra) # add the packages needed!!!
 ```
 
 
@@ -143,11 +143,11 @@ Load the data. Do a quick EDA to get familiar with the data set. Pay attention t
 
 ```{r}
 data <- read.csv("data/NLSY79.csv", header = T, stringsAsFactors = F)
-str(data)
-summary(data)
-levels(as.factor(data$Job05))
-table(as.factor(data$Job05))
-sum(is.na(data))
+#str(data)
+#summary(data)
+#levels(as.factor(data$Job05))
+#table(as.factor(data$Job05))
+#sum(is.na(data))
 ```
 
 
@@ -464,10 +464,11 @@ table(brca_subtype)
     * See plot below
 
     c) Clean and transform the mRNA sequences by first remove gene with zero count and no variability and then apply logarithmic transform. 
+    * See cleaning procedures below.
     
     d) Apply PCA to the transformed data. How many PCs should we use and why? 
     
-    * According to the scree plot, it would be best to use 2 PCs. The plot shows a clear elbow after the 2nd PC, and the proportion of variance explained looks significantly lower after the 2nd PC.
+    * According to the scree plot, it would be best to use 4 PCs. The plot shows a clear elbow after the 4th PC, and the proportion of variance explained looks significantly lower after the 4th PC.
 
     
     
@@ -544,9 +545,14 @@ brca_transformed <- readRDS("data/brca_transformed.rds")
 brca_pca <- readRDS("data/brca_pca.rds")
 
 
-# Plot the scree plot
+# Scree Plot of PVE
 pve <- summary(brca_pca)$importance[2, 1:10]
 plot(pve, type="b", pch = 19, frame = FALSE)
+
+# Scree Plot of CPVE
+plot(summary(brca_pca)$importance[3, 1:10], ylab="Cumulative PVE", xlab="Number of PCs", main="Scree plot of Cumulative PVE ")
+
+
 ```
 
 
@@ -572,18 +578,159 @@ table(brca_subtype, brca_with_clusters$Cluster)
 3. Spectrum clustering: to scale or not to scale?
 
     a) Apply PCA on the centered and scaled dataset. How many PCs should we use and why? You are encouraged to use `irlba::irlba()`. **In order to do so please review the section about SVD in PCA module.** 
+    * According to the scree plots, it would be best to use 2 PCs.
     
     b) Plot PC1 vs PC2 of the centered and scaled data and PC1 vs PC2 of the centered but unscaled data side by side. Should we scale or not scale for clustering process? Why? (Hint: to put plots side by side, use `gridExtra::grid.arrange()` or `ggpubr::ggrrange()` or `egg::ggrrange()` for ggplots; use `fig.show="hold"` as chunk option for base plots)
+    
+    * We should definitely unscale the data. The plot of the centered and scaled data does not show a clear separation between the clusters, while the plot of the centered and unscaled data shows a clear separation between the clusters.
+    
+```{r}
+
+
+svd_out <- irlba::irlba(as.matrix(brca_transformed[,-1]), nv = 10)
+
+# Calculate the proportion of variance explained by each component
+singular_values <- svd_out$d
+variance_explained <- singular_values^2 / sum(singular_values^2)
+cumulative_variance <- cumsum(variance_explained)
+
+# Create a scree plot to visualize the variance explained by each component
+plot(variance_explained, type = "b", xlab = "Principal Component", ylab = "Variance Explained", main = "Scree Plot")
+
+# Plot the cumulative variance to decide how many components to retain
+plot(cumulative_variance, type = "b", xlab = "Principal Component", ylab = "Cumulative Variance Explained", main = "Cumulative Variance Plot")
+
+
+```
+
+    
+
+    
+
+```{r}
+# Perform PCA on centered and scaled data
+scaled_svd_out <- irlba::irlba(scale(brca_transformed[,-1], center = TRUE, scale = TRUE), nv = 10)
+scaled_pca_data <- data.frame(PC1 = scaled_svd_out$u[, 1] * scaled_svd_out$d[1],
+                              PC2 = scaled_svd_out$u[, 2] * scaled_svd_out$d[2])
+
+# Perform PCA on centered but unscaled data
+unscaled_svd_out <- irlba::irlba(scale(brca_transformed[,-1], center = TRUE, scale = FALSE), nv = 10)
+unscaled_pca_data <- data.frame(PC1 = unscaled_svd_out$u[, 1] * unscaled_svd_out$d[1],
+                                PC2 = unscaled_svd_out$u[, 2] * unscaled_svd_out$d[2])
+
+# Combine with subtype information
+brca_subtype <- brca_transformed$BRCA_Subtype_PAM50
+scaled_pca_data <- cbind(scaled_pca_data, Subtype = brca_subtype)
+unscaled_pca_data <- cbind(unscaled_pca_data, Subtype = brca_subtype)
+
+# Create ggplot objects for each PCA result
+p1 <- ggplot(scaled_pca_data, aes(x = PC1, y = PC2, color = Subtype)) +
+      geom_point() + ggtitle("Scaled Data")
+p2 <- ggplot(unscaled_pca_data, aes(x = PC1, y = PC2, color = Subtype)) +
+      geom_point() + ggtitle("Unscaled Data")
+
+# Arrange plots side by side
+grid.arrange(p1, p2, ncol = 2)
+
+
+```
 
 4. Spectrum clustering: center but do not scale the data
 
     a) Use the first 4 PCs of the centered and unscaled data and apply kmeans. Find a reasonable number of clusters using within sum of squared with the elbow rule.
     
+    * I chose to use 4 clusters because the elbow method suggests that 4 clusters would be appropriate.
+    
     b) Choose an optimal cluster number and apply kmeans. Compare the real sub-type and the clustering label as follows: Plot scatter plot of PC1 vs PC2. Use point color to indicate the true cancer type and point shape to indicate the clustering label. Plot the kmeans centroids with black dots. Summarize how good is clustering results compared to the real sub-type.
+    
+    * According to the plot, the clustering results are respectable (in my limited opinion). I do see some overlap between the clusters, but the true gene types have a lot of overlap which will make it difficult to cluster the data.
     
     c) Compare the clustering result from applying kmeans to the original data and the clustering result from applying kmeans to 4 PCs. Does PCA help in kmeans clustering? What might be the reasons if PCA helps?
     
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered, then find its PC1 to PC4 scores) Plot this patient in the plot in b) with a black dot as well. Calculate the Euclidean distance between this patient and each of the centroid of the cluster. (Don't forget the clusters are obtained by using 4 PC's) Can you tell which sub-type this patient might have? 
+    
+    
+```{r}
+################
+#### part a ####
+################
+pca_scores <- unscaled_svd_out$u[, 1:4] * unscaled_svd_out$d[1:4]
+
+# Find the optimal number of clusters using within sum of squares (Elbow Method)
+wss <- sapply(1:10, function(k) {
+  kmeans(pca_scores, centers = k, nstart = 25)$tot.withinss
+})
+
+# Plot the within sum of squares to find the elbow
+plot(1:10, wss, type = "b", xlab = "Number of clusters", ylab = "Within sum of squares")
+
+################
+#### part b ####
+################
+
+k_opt <- 4  # based on elbow method
+kmeans_result <- kmeans(pca_scores, centers = k_opt, nstart = 25)
+
+colnames(pca_scores) <- c("PC1", "PC2", "PC3", "PC4")
+
+# Now when you create pca_scores_df, the columns will have the correct names
+pca_scores_df <- data.frame(pca_scores, Cluster = as.factor(kmeans_result$cluster), Subtype = brca_subtype)
+
+# Now the ggplot code should work without the 'object not found' error
+# Corrected ggplot code
+ggplot(pca_scores_df, aes(x = PC1, y = PC2, color = Subtype, shape = Cluster)) +
+  geom_point() +
+  geom_point(data = data.frame(x = kmeans_result$centers[,1], y = kmeans_result$centers[,2]), 
+             aes(x = x, y = y), color = "black", size = 3, inherit.aes = FALSE) +
+  ggtitle("PCA and K-means Clustering Results")
+
+################
+#### part c ####
+################
+
+# original data to get optimal number of clusters for kmeans
+
+# wss <- sapply(1:10, function(k) {
+#   kmeans(brca_transformed[,-1], centers = k, nstart = 10)$tot.withinss
+# })
+# 
+# # Plot the elbow plot
+# elbow_plot <- data.frame(NumClusters = 1:10, WSS = wss)
+# ggplot(elbow_plot, aes(x = NumClusters, y = WSS)) +
+#   geom_point() +
+#   geom_line() +
+#   theme_minimal() +
+#   ggtitle("Elbow Method for Determining Optimal Number of Clusters") +
+#   xlab("Number of Clusters (k)") +
+#   ylab("Total Within Sum of Squares (WSS)")
+# 
+# # Print the plot
+# print(elbow_plot)
+
+# # Calculate the distance matrix once, as it's computationally intensive
+# dis_original <- dist(brca_transformed[,-1])^2
+# dis_pca <- dist(pca_scores)^2
+# 
+# # Set up a plotting area
+# par(mfrow=c(2,2))
+# 
+# # Loop through a range of k values for the original data
+# for(k in 2:5) {
+#   set.seed(124)  # For reproducibility
+#   kmeans_original <- kmeans(brca[,-1], centers = 5, nstart = 10)
+#   sil_width_original <- silhouette(kmeans_original$cluster, dis_original)
+#   plot(sil_width_original, col = scales::hue_pal()(k), border = NA)
+# }
+# 
+# # Loop through a range of k values for the PCA-reduced data
+# for(k in 2:5) {
+#   set.seed(124)  # For reproducibility
+#   kmeans_pca <- kmeans(pca_scores, centers = k, nstart = 10)
+#   sil_width_pca <- silhouette(kmeans_pca$cluster, dis_pca)
+#   plot(sil_width_pca, col = scales::hue_pal()(k), border = NA)
+# }
+
+```
     
 ```{r}
 x_patient <- fread("data/brca_x_patient.csv")
