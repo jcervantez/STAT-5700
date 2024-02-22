@@ -647,6 +647,8 @@ grid.arrange(p1, p2, ncol = 2)
     
     c) Compare the clustering result from applying kmeans to the original data and the clustering result from applying kmeans to 4 PCs. Does PCA help in kmeans clustering? What might be the reasons if PCA helps?
     
+    * The average silhouette score for the PCA-reduced data is higher than that for the original data, suggesting that PCA does help in kmeans clustering. PCA helps in kmeans clustering because it reduces the dimensionality of the data, which can help to reduce noise and make the clusters more distinct.
+    
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered, then find its PC1 to PC4 scores) Plot this patient in the plot in b) with a black dot as well. Calculate the Euclidean distance between this patient and each of the centroid of the cluster. (Don't forget the clusters are obtained by using 4 PC's) Can you tell which sub-type this patient might have? 
     
     
@@ -688,47 +690,32 @@ ggplot(pca_scores_df, aes(x = PC1, y = PC2, color = Subtype, shape = Cluster)) +
 #### part c ####
 ################
 
-# original data to get optimal number of clusters for kmeans
 
-# wss <- sapply(1:10, function(k) {
-#   kmeans(brca_transformed[,-1], centers = k, nstart = 10)$tot.withinss
-# })
-# 
-# # Plot the elbow plot
-# elbow_plot <- data.frame(NumClusters = 1:10, WSS = wss)
-# ggplot(elbow_plot, aes(x = NumClusters, y = WSS)) +
-#   geom_point() +
-#   geom_line() +
-#   theme_minimal() +
-#   ggtitle("Elbow Method for Determining Optimal Number of Clusters") +
-#   xlab("Number of Clusters (k)") +
-#   ylab("Total Within Sum of Squares (WSS)")
-# 
-# # Print the plot
-# print(elbow_plot)
+## original data
 
-# # Calculate the distance matrix once, as it's computationally intensive
-# dis_original <- dist(brca_transformed[,-1])^2
-# dis_pca <- dist(pca_scores)^2
-# 
-# # Set up a plotting area
-# par(mfrow=c(2,2))
-# 
-# # Loop through a range of k values for the original data
-# for(k in 2:5) {
-#   set.seed(124)  # For reproducibility
-#   kmeans_original <- kmeans(brca[,-1], centers = 5, nstart = 10)
-#   sil_width_original <- silhouette(kmeans_original$cluster, dis_original)
-#   plot(sil_width_original, col = scales::hue_pal()(k), border = NA)
-# }
-# 
-# # Loop through a range of k values for the PCA-reduced data
-# for(k in 2:5) {
-#   set.seed(124)  # For reproducibility
-#   kmeans_pca <- kmeans(pca_scores, centers = k, nstart = 10)
-#   sil_width_pca <- silhouette(kmeans_pca$cluster, dis_pca)
-#   plot(sil_width_pca, col = scales::hue_pal()(k), border = NA)
-# }
+kmeans_original <- kmeans(brca_transformed[,-1], centers = 5, nstart = 10)
+
+# Calculate silhouette widths for the original data
+sil_width_original <- silhouette(kmeans_original$cluster, dist(brca_transformed[,-1]))
+avg_sil_score_original <- mean(sil_width_original[, "sil_width"])
+
+## PCA-transformed data
+
+# Calculate silhouette widths for the PCA-transformed data
+sil_width_pca <- silhouette(kmeans_result$cluster, dist(pca_scores))
+avg_sil_score_pca <- mean(sil_width_pca[, "sil_width"])
+
+# Create silhouette plots for both
+p1 <- fviz_silhouette(sil_width_original) + ggtitle("Silhouette Plot for Original Data")
+p2 <- fviz_silhouette(sil_width_pca) + ggtitle("Silhouette Plot for PCA-reduced Data")
+
+# Arrange plots side by side
+grid.arrange(p1, p2, ncol = 2)
+
+# Print the average silhouette scores
+print(paste("Average silhouette score for original data:", avg_sil_score_original))
+print(paste("Average silhouette score for PCA-reduced data:", avg_sil_score_pca))
+
 
 ```
     
