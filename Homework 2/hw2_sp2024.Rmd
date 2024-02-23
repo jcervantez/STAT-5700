@@ -588,8 +588,6 @@ table(brca_subtype, brca_with_clusters$Cluster)
     * We should definitely unscale the data. The plot of the centered and scaled data does not show a clear separation between the clusters, while the plot of the centered and unscaled data shows a clear separation between the clusters.
     
 ```{r}
-
-
 svd_out <- irlba::irlba(as.matrix(brca_transformed[,-1]), nv = 10)
 
 # Calculate the proportion of variance explained by each component
@@ -652,7 +650,7 @@ grid.arrange(p1, p2, ncol = 2)
     
     * The average silhouette score for the PCA-reduced data is higher than that for the original data, suggesting that PCA does help in kmeans clustering. PCA helps in kmeans clustering because it reduces the dimensionality of the data, which can help to reduce noise and make the clusters more distinct.
     
-    d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: remember we remove some gene with no counts or no variablity, take log and centered, then find its PC1 to PC4 scores) Plot this patient in the plot in b) with a black dot as well. Calculate the Euclidean distance between this patient and each of the centroid of the cluster. (Don't forget the clusters are obtained by using 4 PC's) Can you tell which sub-type this patient might have? 
+    d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: Rmemeber we remove some gene with no counts or no variablity, take log and centered, then find its PC1 to PC4 score) Plot this patient in the plot in b) with a black dot as well. Calculate the Euclidean distance between this patient and each of the centroid of the cluster. (Don't forget the clusters are obtained by using 4 PC's) Can you tell which sub-type this patient might have? 
     
     
 ```{r}
@@ -723,7 +721,25 @@ print(paste("Average silhouette score for PCA-reduced data:", avg_sil_score_pca)
 ```
     
 ```{r}
+################
+#### part d ####
+################
+
 x_patient <- fread("data/brca_x_patient.csv")
+
+genes_to_keep <- x_patient %>%
+  summarise(across(everything(), ~any(. != 0))) %>%
+  select_if(~ . == TRUE) %>%
+  names()
+
+x_clean <- x_patient %>%
+  select(all_of(genes_to_keep))
+
+# Apply logarithmic transformation
+x_log1p <- x_clean %>%
+  mutate(across(everything(), log1p))
+
+
 ```
 
 
