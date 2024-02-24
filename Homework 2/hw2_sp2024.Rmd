@@ -739,6 +739,7 @@ x_clean <- x_patient %>%
 x_log1p <- x_clean %>%
   mutate(across(everything(), log1p))
 
+# Project the x patient to the space of PC1 and PC2
 
 ```
 
