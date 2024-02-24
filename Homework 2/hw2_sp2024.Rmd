@@ -517,7 +517,7 @@ library(dplyr)
 #   select_if(~ . == TRUE) %>%
 #   names()
 
-length(genes_to_keep)
+#length(genes_to_keep)
 # 
 # brca_clean <- brca %>%
 #   select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
@@ -538,6 +538,7 @@ brca_transformed <- readRDS("data/brca_transformed.rds")
 ################
 
 brca_pca <- prcomp(brca_transformed %>% select(-BRCA_Subtype_PAM50), scale. = T, center=TRUE)
+brca_original <- prcomp(brca %>% select(-BRCA_Subtype_PAM50), scale. = F, center=TRUE)
 # 
 # brca_pca$rotation <- brca_pca$rotation[, 1:20]
 # brca_pca$x <- brca_pca$x[, 1:20]
@@ -618,6 +619,7 @@ scaled_pca_data <- data.frame(PC1 = scaled_svd_out$u[, 1] * scaled_svd_out$d[1],
 
 # Perform PCA on centered but unscaled data
 unscaled_svd_out <- irlba::irlba(scale(brca_transformed[,-1], center = TRUE, scale = FALSE), nv = 10)
+unscaled_svd_original <- irlba::irlba(scale(brca[,-1], center = T, scale = F), nv = 10)
 unscaled_pca_data <- data.frame(PC1 = unscaled_svd_out$u[, 1] * unscaled_svd_out$d[1],
                                 PC2 = unscaled_svd_out$u[, 2] * unscaled_svd_out$d[2])
 
@@ -654,16 +656,18 @@ grid.arrange(p1, p2, ncol = 2)
     
     d) Now we have an x patient with breast cancer but with unknown sub-type. We have this patient's mRNA sequencing data. Project this x patient to the space of PC1 and PC2. (Hint: Rmemeber we remove some gene with no counts or no variablity, take log and centered, then find its PC1 to PC4 score) Plot this patient in the plot in b) with a black dot as well. Calculate the Euclidean distance between this patient and each of the centroid of the cluster. (Don't forget the clusters are obtained by using 4 PC's) Can you tell which sub-type this patient might have? 
     
+    * See below for the graph. I would estimate the sub-type would be LumB, as the patient is closest to cluster 3, which is the cluster that is closest to the LumB sub-type.
+    
     
 ```{r}
 ################
 #### part a ####
 ################
-# pca_scores <- unscaled_svd_out$u[, 1:4] * unscaled_svd_out$d[1:4]
-pca_scores <- unscaled_svd_out$v
+pca_loadings <- unscaled_svd_out$u[, 1:4] * unscaled_svd_out$d[1:4]
+pca_scores <- as.matrix(unscaled_svd_original$v)
 # Find the optimal number of clusters using within sum of squares (Elbow Method)
 wss <- sapply(1:10, function(k) {
-  kmeans(pca_scores, centers = k, nstart = 25)$tot.withinss
+  kmeans(pca_loadings, centers = k, nstart = 25)$tot.withinss
 })
 
 # Plot the within sum of squares to find the elbow
@@ -674,16 +678,15 @@ plot(1:10, wss, type = "b", xlab = "Number of clusters", ylab = "Within sum of s
 ################
 
 k_opt <- 4  # based on elbow method
-kmeans_result <- kmeans(pca_scores, centers = k_opt, nstart = 25)
+kmeans_result <- kmeans(pca_loadings, centers = k_opt, nstart = 25)
 
-colnames(pca_scores) <- c("PC1", "PC2", "PC3", "PC4")
+colnames(pca_loadings) <- c("PC1", "PC2", "PC3", "PC4")
 
 # Now when you create pca_scores_df, the columns will have the correct names
-pca_scores_df <- data.frame(pca_scores, Cluster = as.factor(kmeans_result$cluster), Subtype = brca_subtype)
+pca_loadings_df <- data.frame(pca_loadings, Cluster = as.factor(kmeans_result$cluster), Subtype = brca_subtype)
 
-# Now the ggplot code should work without the 'object not found' error
-# Corrected ggplot code
-ggplot(pca_scores_df, aes(x = PC1, y = PC2, color = Subtype, shape = Cluster)) +
+# GGplot2 code
+ggplot(pca_loadings_df, aes(x = PC1, y = PC2, color = Subtype, shape = Cluster)) +
   geom_point() +
   geom_point(data = data.frame(x = kmeans_result$centers[,1], y = kmeans_result$centers[,2]), 
              aes(x = x, y = y), color = "black", size = 3, inherit.aes = FALSE) +
@@ -705,7 +708,7 @@ avg_sil_score_original <- mean(sil_width_original[, "sil_width"])
 ## PCA-transformed data
 
 # Calculate silhouette widths for the PCA-transformed data
-sil_width_pca <- silhouette(kmeans_result$cluster, dist(pca_scores))
+sil_width_pca <- silhouette(kmeans_result$cluster, dist(pca_loadings))
 avg_sil_score_pca <- mean(sil_width_pca[, "sil_width"])
 
 # Create silhouette plots for both
@@ -729,20 +732,36 @@ print(paste("Average silhouette score for PCA-reduced data:", avg_sil_score_pca)
 
 x_patient <- fread("data/brca_x_patient.csv")
 
-x_clean <- x_patient %>%
-  select(all_of(genes_to_keep))
 
 # Apply logarithmic transformation
-x_log1p <- x_clean %>%
+x_log1p <- x_patient %>%
   mutate(across(everything(), log1p))
 
-<<<<<<< HEAD
-# Project the x patient to the space of PC1 and PC2
-=======
-proj = t(as.matrix(as.numeric(x_log1p))) %*% pca_scores[, c(1,2)]
-proj
->>>>>>> 336e545184f0f7472fe36680ff29858cb09f8c60
 
+proj = t(as.matrix(as.numeric(x_log1p))) %*% pca_scores[, c(1,2)]
+
+
+p <- ggplot(pca_loadings_df, aes(x = PC1, y = PC2, color = Subtype, shape = Cluster)) +
+  geom_point() +
+  geom_point(data = data.frame(x = kmeans_result$centers[,1], y = kmeans_result$centers[,2]), 
+             aes(x = x, y = y), color = "black", size = 3, inherit.aes = FALSE) +
+  ggtitle("PCA and K-means Clustering Results")
+# Add the patient's projection with a black dot
+p + geom_point(aes(x = proj[1], y = proj[2]), color = "black", size = 5)
+
+
+patient_proj <- c(25.2, -3.5)  # Patient's PC1 and PC2
+# Calculating Euclidean distances to each cluster centroid
+distances <- apply(kmeans_result$centers[, 1:2], 1, function(centroid) {
+  sqrt(sum((centroid - patient_proj)^2))
+})
+
+# Print the distances
+print(distances)
+
+# Identify the closest cluster
+closest_cluster <- which.min(distances)
+print(paste("The patient is closest to cluster:", closest_cluster))
 ```
 
 
