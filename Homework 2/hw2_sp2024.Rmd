@@ -31,7 +31,7 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 # devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra, skimr) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra, skimr, GGally) # add the packages needed!!!
 ```
 
 
@@ -828,6 +828,28 @@ There are 392 cars in the dataset (with 392 unique rows). There are also 301 uni
 
 c) EDA, focus on pairwise plots and summary statistics. Briefly summarize your findings and any peculiarities in the data.
 
+```{r 3c, echo=FALSE}
+
+auto_subset <- auto |>
+  select(
+    mpg, cylinders, displacement, horsepower, weight, acceleration, origin
+  )
+
+ggpairs(auto_subset)
+
+```
+
+\textcolor{red}{\textbf{Answer:}} 
+
+Summary of variables and findings based on pairwise plots: 
+- MPG: The distribution of `mpg` is right-skewed, with a few cars having very high `mpg` values. MPG is negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`, but positively correlated with `acceleration`. American cars have the lowest `mpg` on average, while Japanese cars have the highest `mpg` on average.
+- Cylinders: The distribution of `cylinders` is right-skewed. `cylinders` is positively correlated with `displacement`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average number of `cylinders`.
+- Displacement: The distribution of `displacement` is right-skewed. `displacement` is positively correlated with `cylinders`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `displacement`.
+- Horsepower: The distribution of `horsepower` is right-skewed. `horsepower` is positively correlated with `cylinders`, `displacement`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `horsepower`.
+- Weight: The distribution of `weight` is right-skewed. `weight` is positively correlated with `cylinders`, `displacement`, and `horsepower`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `weight`.
+- Acceleration: The distribution of `acceleration` is approximately normal. `acceleration` is positively correlated with `mpg`, but negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`.
+
+Overall, it seems that American cars tend to be heavier, have more cylinders, and have higher displacement and horsepower, but lower `mpg` and acceleration. Japanese cars tend to be lighter, have fewer cylinders, and have lower displacement and horsepower, but higher `mpg` and acceleration. European cars tend to have similar characteristics to Japanese cars, but not to American cars.
 
 ## What effect does `time` have on `MPG`?
 
