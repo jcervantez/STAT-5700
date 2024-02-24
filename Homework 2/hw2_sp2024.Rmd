@@ -511,22 +511,24 @@ plot_grid
 library(dplyr)
 
 ## Filter out genes with only zero counts and no variability
-genes_to_keep <- brca %>%
-  select(-BRCA_Subtype_PAM50) %>%
-  summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
-  select_if(~ . == TRUE) %>%
-  names()
+# genes_to_keep <- brca %>%
+#   select(-BRCA_Subtype_PAM50) %>%
+#   summarise(across(everything(), ~any(. != 0) & sd(.) != 0)) %>%
+#   select_if(~ . == TRUE) %>%
+#   names()
 
-brca_clean <- brca %>%
-  select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
-
-# Apply logarithmic transformation
-brca_transformed <- brca_clean %>%
-  mutate(across(-BRCA_Subtype_PAM50, log1p))
-
-# Save the transformed data
-
-## saveRDS(brca_transformed, "data/brca_transformed.rds")
+length(genes_to_keep)
+# 
+# brca_clean <- brca %>%
+#   select(BRCA_Subtype_PAM50, all_of(genes_to_keep))
+# 
+# # Apply logarithmic transformation
+# brca_transformed <- brca_clean %>%
+#   mutate(across(-BRCA_Subtype_PAM50, log1p))
+# 
+# # Save the transformed data
+# 
+# saveRDS(brca_transformed, "data/brca_transformed.rds")
 
 
 brca_transformed <- readRDS("data/brca_transformed.rds")
@@ -657,8 +659,8 @@ grid.arrange(p1, p2, ncol = 2)
 ################
 #### part a ####
 ################
-pca_scores <- unscaled_svd_out$u[, 1:4] * unscaled_svd_out$d[1:4]
-
+# pca_scores <- unscaled_svd_out$u[, 1:4] * unscaled_svd_out$d[1:4]
+pca_scores <- unscaled_svd_out$v
 # Find the optimal number of clusters using within sum of squares (Elbow Method)
 wss <- sapply(1:10, function(k) {
   kmeans(pca_scores, centers = k, nstart = 25)$tot.withinss
@@ -727,11 +729,6 @@ print(paste("Average silhouette score for PCA-reduced data:", avg_sil_score_pca)
 
 x_patient <- fread("data/brca_x_patient.csv")
 
-genes_to_keep <- x_patient %>%
-  summarise(across(everything(), ~any(. != 0))) %>%
-  select_if(~ . == TRUE) %>%
-  names()
-
 x_clean <- x_patient %>%
   select(all_of(genes_to_keep))
 
@@ -739,7 +736,12 @@ x_clean <- x_patient %>%
 x_log1p <- x_clean %>%
   mutate(across(everything(), log1p))
 
+<<<<<<< HEAD
 # Project the x patient to the space of PC1 and PC2
+=======
+proj = t(as.matrix(as.numeric(x_log1p))) %*% pca_scores[, c(1,2)]
+proj
+>>>>>>> 336e545184f0f7472fe36680ff29858cb09f8c60
 
 ```
 
