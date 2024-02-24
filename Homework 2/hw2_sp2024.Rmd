@@ -31,7 +31,7 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 # devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra, skimr) # add the packages needed!!!
 ```
 
 
@@ -769,23 +769,62 @@ print(paste("The patient is closest to cluster:", closest_cluster))
 
 **Linda will refine this case study by the following Monday, Feb 12th)**
 
-What determines how fuel efficient a car is? Are Japanese cars more fuel efficient?  To answer thes questions we will build various linear models  using 
+What determines how fuel efficient a car is? Are Japanese cars more fuel efficient?  To answer these questions we will build various linear models  using 
  the `Auto` dataset from the book `ISLR`. The original dataset contains information for about 400 different cars built in various years.  To get the data, first install the package ISLR which has been done in the first R-chunk.  The `Auto` dataset should be loaded automatically.  Original data source is here: https://archive.ics.uci.edu/ml/datasets/auto+mpg
 
 Get familiar with this dataset first. Tip: you can use the command `?ISLR::Auto` to view a description of the dataset. Our response variable will me `MPG`: miles per gallon.
 
 ## EDA
 
+```{r 3a, include=FALSE}
+auto <- ISLR::Auto
+?ISLR::Auto
+hist(auto$acceleration) # to check if there are some outliers
 
-```{r}
-# auto <- ISLR::Auto
-# ?ISLR::Auto
-# summary(auto) 
-# hist(auto$acceleration) # to check if there are some outliers
+# Examine data variables and generate summaries
+str(auto)
+summary(auto) 
+skim(auto)
+
+# Set each variable to appropriate class
+auto <- auto |>
+  mutate(
+    cylinders = as.integer(cylinders), # set cylinder as integer
+    year = as.factor(year), # set year as factor
+    origin = as.factor(origin) # set origin as factor
+    )
 ```
 a) Explore the data, list the variables with clear definitions. Set each variable with its appropriate class. For example `origin` should be set as a factor. 
 
+\textcolor{red}{\textbf{Answer:}} 
+
+Variables and definitions: 
+- `mpg`: miles per gallon
+- `cylinders`: number of cylinders between 4 and 8
+- `displacement`: engine displacement (cubic inches)
+- `horsepower`: engine horsepower
+- `weight`: vehicle weight (lbs)
+- `acceleration`: time to accelerate from 0 to 60 mph (sec)
+- `year`: model year (e.g. 70 for 1970)
+- `origin`: origin of car (1. American, 2. European, 3. Japanese)
+- `name`: vehicle name
+
+Look to .rmd document for the code on EDA and setting variable to appropriate class.
+
+```{r 3b, include=FALSE}
+
+# Check number of unique rows in dataset
+nrow(unique(auto))
+
+# Check number of unique car names in dataset
+length(unique(auto$name))
+
+```
+
 b) How many cars are included in this data set? 
+
+\textcolor{red}{\textbf{Answer:}} 
+There are 392 cars in the dataset (with 392 unique rows). There are also 301 unique car names in the dataset (that span different model years). 
 
 c) EDA, focus on pairwise plots and summary statistics. Briefly summarize your findings and any peculiarities in the data.
 
