@@ -214,7 +214,7 @@ corrplot(corr_table, method="color")
 
     a) Report the PC1 and PC2 loadings. Are they unit vectors? Are they orthogonal? 
    
-    \textcolor{red}{\textbf{Answer:}} The PC1 loading is (-0.235, -0.244, 0.279, -0.261, 0.312, -0.313, -0.299, 0.393, 0.398, 0.376). The PC2 loading is (0.374, 0.367, -0.149, 0.321, -0.131, 0.209, 0.163, 0.332, 0.578, 0.260). As shown in the table below, PC1 and PC2 both are unit vectors and are orthogonal to each other.
+\textcolor{red}{\textbf{Answer:}} The PC1 loading is (-0.235, -0.244, 0.279, -0.261, 0.312, -0.313, -0.299, 0.393, 0.398, 0.376). The PC2 loading is (0.374, 0.367, -0.149, 0.321, -0.131, 0.209, 0.163, 0.332, 0.578, 0.260). As shown in the table below, PC1 and PC2 both are unit vectors and are orthogonal to each other.
     
 ```{r}
   pca <- prcomp(esteem, scale=FALSE, center=T)
@@ -235,15 +235,15 @@ corrplot(corr_table, method="color")
   
     b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
     
-     \textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
+\textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
   
     c) How is the PC1 score obtained for each subject? Write down the formula.
     
-     \textcolor{red}{\textbf{Answer:}} $$PC1 = -0.235 \times (Q1_score) + -0.244 \times (Q2_score) + 0.279 \times (Q3_score) + -0.261 \times (Q4_score) + 0.312 \times (Q5_score) + -0.313 \times (Q6_score) + -0.299 \times (Q7_score) + 0.393 \times (Q8_score) + 0.398 \times (Q9_score) + 0.376 \times (Q10_score$$.
+\textcolor{red}{\textbf{Answer:}} $$PC1 = -0.235 \times (Q1_score) + -0.244 \times (Q2_score) + 0.279 \times (Q3_score) + -0.261 \times (Q4_score) + 0.312 \times (Q5_score) + -0.313 \times (Q6_score) + -0.299 \times (Q7_score) + 0.393 \times (Q8_score) + 0.398 \times (Q9_score) + 0.376 \times (Q10_score$$.
     
     d) Are PC1 scores and PC2 scores in the data uncorrelated? 
     
-    \textcolor{red}{\textbf{Answer:}} Yes, the PC1 and PC2 scores are uncorrelated. As shown in the table, the covariance of PC1 and PC2 is 0, implying that their correlation is 0.
+\textcolor{red}{\textbf{Answer:}} Yes, the PC1 and PC2 scores are uncorrelated. As shown in the table, the covariance of PC1 and PC2 is 0, implying that their correlation is 0.
     
     ```{r, results="markup"}
     # get correlation between PCA scores
@@ -253,7 +253,7 @@ corrplot(corr_table, method="color")
     
     e) Plot PVE (Proportion of Variance Explained) and summarize the plot. 
     
-    \textcolor{red}{\textbf{Answer:}} The plot shows that PC1 explains almost 50% of the variation and PC2 explains a little over 10% of the variance. We can also use this scree plot to determine the number of PCs that would be appropriate to use with our data. Using the elbow method, we see that using 2 PCs would be appropriate.
+\textcolor{red}{\textbf{Answer:}} The plot shows that PC1 explains almost 50% of the variation and PC2 explains a little over 10% of the variance. We can also use this scree plot to determine the number of PCs that would be appropriate to use with our data. Using the elbow method, we see that using 2 PCs would be appropriate.
     
     ```{r}
     # PVE plot
@@ -266,7 +266,7 @@ corrplot(corr_table, method="color")
   
     f) Also plot CPVE (Cumulative Proportion of Variance Explained). What proportion of the variance in the data is explained by the first two principal components?
     
-    \textcolor{red}{\textbf{Answer:}} Approximately 60% of variance in the data is explained by the first 2 PCs.
+\textcolor{red}{\textbf{Answer:}} Approximately 60% of variance in the data is explained by the first 2 PCs.
     
     ```{r}
     # CPVE plot
@@ -278,7 +278,7 @@ corrplot(corr_table, method="color")
   
     g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
     
-    \textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other. There still does not seem to be a clear interpretation of PC2, but PC2 seems to represent the rough difference between the total scores for questions 8, 9, 10 and questions 1-7.
+\textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other. There still does not seem to be a clear interpretation of PC2, but PC2 seems to represent the rough difference between the total scores for questions 8, 9, 10 and questions 1-7.
     
     ```{r}
 ggbiplot(pca, obs.scale = 2, var.scale = 1) + 
@@ -292,7 +292,7 @@ theme_bw()
 
     a) Find a reasonable number of clusters using within sum of squared with elbow rules.
     
-    \textcolor{red}{\textbf{Answer:}} Using the elbow method, it appears that 2 is a reasonable number of clusters.
+\textcolor{red}{\textbf{Answer:}} Using the elbow method, it appears that 2 is a reasonable number of clusters.
     
     ```{r}
     kmeans = fviz_nbclust(esteem, kmeans, method = "wss")
@@ -301,7 +301,7 @@ theme_bw()
     
     b) Can you summarize common features within each cluster?
     
-    \textcolor{red}{\textbf{Answer:}} Cluster 1 is characterized by higher scores for questions 3, 5, 8, 9, and 10. Cluster 2 is characterized by higher scores for questions 1, 2, 4, 6, and 7. This seems to roughly correspond to PC1, which can be interpreted as the approximate difference betwen the total score for questions 3, 5, 8, 9, and 10 and the total score for questions 1, 2, 4, 6, and 7.
+\textcolor{red}{\textbf{Answer:}} Cluster 1 is characterized by higher scores for questions 3, 5, 8, 9, and 10. Cluster 2 is characterized by higher scores for questions 1, 2, 4, 6, and 7. This seems to roughly correspond to PC1, which can be interpreted as the approximate difference betwen the total score for questions 3, 5, 8, 9, and 10 and the total score for questions 1, 2, 4, 6, and 7.
     
     ```{r, results="markup"}
     esteem.kmeans = kmeans(esteem, centers = 2, nstart=10)
@@ -314,7 +314,7 @@ theme_bw()
     
     c) Can you visualize the clusters with somewhat clear boundaries? You may try different pairs of variables and different PC pairs of the esteem scores.
     
-     \textcolor{red}{\textbf{Answer:}} When we cluster by PC1 and PC2, we see a very clear boundary given by PC1. Specifically, group 1 is almost entirely to the left of PC1 = 0, while group 2 is almost entirely to the right of PC2 = 0.
+\textcolor{red}{\textbf{Answer:}} When we cluster by PC1 and PC2, we see a very clear boundary given by PC1. Specifically, group 1 is almost entirely to the left of PC1 = 0, while group 2 is almost entirely to the right of PC2 = 0.
     
     ```{r}
     data.frame(pc1 = pca$x[, 1], 
@@ -338,7 +338,7 @@ theme_bw()
     
       - You may use PC1 of ASVAB as level of intelligence
       
-       \textcolor{red}{\textbf{Answer:}} See .rmd file for code. I created a dataframe that contains all of the above listed variables. Income87 has some negative values, so I use 0 for any negative values. Since we cannot take the log of 0, I use log1p, which takes the log(1 + [value]). I also merge in columns for PC1 of the Esteem scores and PC1 of the ASVAB scores, for which I ran PCA for the ASVAB data. 
+\textcolor{red}{\textbf{Answer:}} See .rmd file for code. I created a dataframe that contains all of the above listed variables. Income87 has some negative values, so I use 0 for any negative values. Since we cannot take the log of 0, I use log1p, which takes the log(1 + [value]). I also merge in columns for PC1 of the Esteem scores and PC1 of the ASVAB scores, for which I ran PCA for the ASVAB data. 
       
 ```{r}
   # PCA of ASVAB
