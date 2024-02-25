@@ -764,6 +764,7 @@ closest_cluster <- which.min(distances)
 print(paste("The patient is closest to cluster:", closest_cluster))
 ```
 
+\newpage
 
 # Case Study: Fuel Efficiency in Automobiles
 
@@ -798,6 +799,7 @@ a) Explore the data, list the variables with clear definitions. Set each variabl
 \textcolor{red}{\textbf{Answer:}} 
 
 Variables and definitions: 
+
 - `mpg`: miles per gallon
 - `cylinders`: number of cylinders between 4 and 8
 - `displacement`: engine displacement (cubic inches)
@@ -820,14 +822,18 @@ length(unique(auto$name))
 
 ```
 
+\hrulefill
+
 b) How many cars are included in this data set? 
 
 \textcolor{red}{\textbf{Answer:}} 
 There are 392 cars in the dataset (with 392 unique rows). There are also 301 unique car names in the dataset (that span different model years). 
 
+\newpage
+
 c) EDA, focus on pairwise plots and summary statistics. Briefly summarize your findings and any peculiarities in the data.
 
-```{r case-3-1c, echo=FALSE}
+```{r case-3-1c, echo=FALSE, results='markup', warning=FALSE, message=FALSE}
 
 auto_subset <- auto |>
   select(
@@ -841,6 +847,7 @@ ggpairs(auto_subset)
 \textcolor{red}{\textbf{Answer:}} 
 
 Summary of variables and findings based on pairwise plots: 
+
 - MPG: The distribution of `mpg` is right-skewed, with a few cars having very high `mpg` values. MPG is negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`, but positively correlated with `acceleration`. American cars have the lowest `mpg` on average, while Japanese cars have the highest `mpg` on average.
 - Cylinders: The distribution of `cylinders` is right-skewed. `cylinders` is positively correlated with `displacement`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average number of `cylinders`.
 - Displacement: The distribution of `displacement` is right-skewed. `displacement` is positively correlated with `cylinders`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `displacement`.
@@ -850,11 +857,13 @@ Summary of variables and findings based on pairwise plots:
 - Origin: There are more American cars in this dataset. American cars tend to have the highest `cylinders`, `displacement`, `horsepower`, `weight`, and lowest `mpg` on average. Japanese cars tend to have the lowest `cylinders`, `displacement`, `horsepower`, `weight`, and highest `mpg` on average. European cars tend to have similar characteristics to Japanese cars, but not to American cars.
 - Year: The distribution of `year` is approximately uniform. `year` is positively correlated with `mpg` and `acceleration`, but negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`.
 
+\newpage
+
 ## What effect does `time` have on `MPG`?
 
 a) Start with a simple regression of `mpg` vs. `year` and report R's `summary` output. Is `year` a significant variable at the .05 level? State what effect `year` has on `mpg`, if any, according to this model. 
 
-```{r case-3-2a, echo=FALSE}
+```{r case-3-2a, echo=FALSE, results='markup'}
 
 # Fit OLS model
 ols_1 <- lm(mpg ~ year, data = auto)
@@ -864,11 +873,11 @@ summary(ols_1)
 \textcolor{red}{\textbf{Answer:}}
 Yes, year is a significant variable at the .05 level. The coefficient of year is 1.23, which means that for each additional year, the `mpg` of a car increases by 1.23 on average. Note that this does not imply a causal link between `year` and `mpg`, but an association between the two variables.
 
-\newpage
+\hrulefill
 
 b) Add `horsepower` on top of the variable `year` to your linear model. Is `year` still a significant variable at the .05 level? Give a precise interpretation of the `year`'s effect found here. 
 
-```{r case-3-2b, echo=FALSE}
+```{r case-3-2b, echo=FALSE, results='markup'}
 
 # Fit OLS model
 ols_2 <- lm(mpg ~ year + horsepower, data = auto)
@@ -876,20 +885,20 @@ summary(ols_2)
 ```
 
 \textcolor{red}{\textbf{Answer:}}
-Yes, year is still a significant variable at the .05 level. The coefficient of year is 0.65, which means that for each additional year, the `mpg` of a car increases by 0.75 on average, **holding `horsepower` constant. This is a smaller effect than the one found in the previous model, which suggests that `horsepower` is a confounding variable in the relationship between `year` and `mpg`, and is correlated with power variables.
+Yes, year is still a significant variable at the .05 level. The coefficient of year is 0.65, which means that for each additional year, the `mpg` of a car increases by 0.75 on average, **holding `horsepower` constant**. This is a smaller effect than the one found in the previous model, which suggests that `horsepower` is a confounding variable in the relationship between `year` and `mpg`, and is correlated with power variables.
 
-\newpage
+\hrulefill
 
 c) The two 95% CI's for the coefficient of year differ among (a) and (b). How would you explain the difference to a non-statistician?
 
 \textcolor{red}{\textbf{Answer:}}
 The difference in the 95% CI's for the coefficient of year between the two models is due to the presence of `horsepower` in the second model. In the first model, there is less precision and more noise in the model since the effect of `horsepower` isn't taken into account. This results in a wider confidence interval for the coefficient of `year` in the first model. In the second model, including `horsepower` in the model makes the model more precise, and so the we can estimate a narrower confidence interval for the coefficient of `year` is narrower.
 
-\newpage
+\hrulefill
 
 d) Create a model with interaction by fitting `lm(mpg ~ year * horsepower)`. Is the interaction effect significant at .05 level? Explain the year effect (if any). 
 
-```{r case-3-2d, echo=FALSE}
+```{r case-3-2d, echo=FALSE, results='markup'}
 
 # Penalize scientific notation
 options(scipen = 999)
@@ -911,7 +920,7 @@ Remember that the same variable can play different roles! Take a quick look at t
 
 a) Fit a model that treats `cylinders` as a continuous/numeric variable. Is `cylinders` significant at the 0.01 level? What effect does `cylinders` play in this model?
 
-```{r case-3-3a, echo=FALSE}
+```{r case-3-3a, echo=FALSE, results='markup'}
 
 # Regress mpg on cylinders
 ols_4 <- lm(mpg ~ cylinders, data = auto)
@@ -925,18 +934,17 @@ Yes, `cylinders` is significant at the .01 level. The coefficient of `cylinders`
 
 However, the interpretation of the model is difficult, becuase the intercept represents zero cylinders, which is not a meaningful value. Also, cylinders only take on discrete values.
 
-\newpage
+\hrulefill
 
 b) Fit a model that treats `cylinders` as a categorical/factor. Is `cylinders` significant at the .01 level? What is the effect of `cylinders` in this model? Describe the `cylinders` effect over `mpg`. 
 
-```{r case-3-3b, echo=FALSE}
+```{r case-3-3b, echo=FALSE, results='markup'}
 
 # Change cylinders into a factor
 auto <- mutate(auto, cylinders = as.factor(cylinders))
-levels(auto$cylinders)
 
 # Check the count of each level in the factor
-table(auto$cylinders)
+# table(auto$cylinders)
 
 # Regress mpg on cylinders (as a factor)
 ols_5 <- lm(mpg ~ cylinders, data = auto)
@@ -951,7 +959,7 @@ If `cylinders` is treated as a categorical variable, the OLS regression will tre
 
 It makes sense that only `cyliners4` is significant, since the other levels of `cylinders` have very few observations.
 
-\newpage
+\hrulefill
 
 c) What are the fundamental differences between treating `cylinders` as a continuous and categorical variable in your models? 
 
@@ -962,11 +970,11 @@ The other main difference is that the continuous model is difficult to interpret
 
 Personally, we think it is best to use `cylinders` as a categorical model (where linearity is not assumed), with `cylinders4` as the reference level, since it is the most commonly observed level.
 
-\newpage
+\hrulefill
 
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
 
-```{r case-3-3d, echo=FALSE}
+```{r case-3-3d, echo=FALSE, results='markup'}
 
 # Test the null hypothesis
 anova(ols_4, ols_5)
@@ -975,23 +983,22 @@ anova(ols_4, ols_5)
 \textcolor{red}{\textbf{Answer:}}
 Yes, we can test the null hypothesis that `mpg` is linear in `cylinders` vs. `mpg` relates to `cylinders` as a categorical variable at the .01 level using an ANOVA test. The p-value of the test is less than .01 with an F-statistic of 13.2, so we reject the null hypothesis and conclude that the model using `cylinders` as a categorical variable explains more of the variation and is significantly different from the model modeling `cylinders` as a linear relationship with `mpg`.
 
+\newpage
+
 ## Results
 
 Final modeling question: we want to explore the effects of each feature as best as possible. You may explore interactions, feature transformations, higher order terms, or other strategies within reason. The model(s) should be as parsimonious (simple) as possible unless the gain in accuracy is significant from your point of view.
   
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
 
-```{r case-3-4a, echo=FALSE}
+```{r case-3-4a, echo=FALSE, results='markup'}
 
 # Fit an exploratory model with all terms to see which ones explain variation
 ols_6 <- lm(mpg ~ cylinders + displacement + horsepower + weight + acceleration + year + origin + log(displacement) + log(horsepower) + log(weight) + log(acceleration) + log(year) + displacement^2 + horsepower^2 + weight^2 + acceleration^2 + year^2 + cylinders * displacement + cylinders * horsepower + cylinders * weight + cylinders * acceleration + cylinders * year + cylinders * origin + displacement * horsepower + displacement * weight + displacement * acceleration + displacement * year + displacement * origin + horsepower * weight + horsepower * acceleration + horsepower * year + horsepower * origin + weight * acceleration + weight * year + weight * origin + acceleration * year + acceleration * origin + year * origin, data = auto)
 
-summary(ols_6)
-
 # Re-center year so that terms are more interpretable
 auto <- auto |>
   mutate(years_after_1970 = year - 70)
-
 
 # Simplify the model to exclude variables that are not close to significant
 # And exclude point estimates that are not large effects on mpg
@@ -1018,22 +1025,22 @@ The final model is a parsimonious linear regression model with `mpg` as the resp
 
 However, the model's residuals are not normally distributed, as shown by the QQ plot and the Shapiro-Wilk test. The residuals are also heteroscedastic, as shown by the residual plot and the Breusch-Pagan test. However, even with non-normal residuals and heteroscedasticity, this only causes problems for inference and calculation of standard errors/confidence intervals; OLS is still a unbiased estimator so it is still a valid model for prediction.
 
-\newpage
+\hrulefill
 
 b) Summarize the effects found.
 
 \textcolor{red}{\textbf{Answer:}}
 
 * `log(weight)` has a negative effect on `mpg`, with a coefficient of -17, which means that (roughly) for every 1% increase in weight, `mpg` decreases by 17
-* `log(horsepower)` has a positive effect on `mpg`, with a coefficient of 80, which means that for every 1% increase in horsepower, `mpg` increase by 80. However, one should not interpret this isolation, because there is an interaction term with `year` that changes the effect of `log(horsepower)` on `mpg` depending on the year of the car.
+* `log(horsepower)` has a positive effect on `mpg`, with a coefficient of 80, which means that for every 1% increase in horsepower, `mpg` increase by 80. However, one should not interpret this in isolation, because there is an interaction term with `year` that changes the effect of `log(horsepower)` on `mpg` depending on the year of the car.
 * `years_after_1970` has a positive effect on `mpg`, with a coefficient of 5.8, which means that for every year increase in the car's model year, `mpg` increases by 5.8. However, this effect is not constant, as it interacts with `log(horsepower)`.
-* The interaction term between `years_after_1970` and `log(horsepower)` has a negative effect on `mpg`, with a coefficient of -1.1, which means that for every 1% increase in horsepower `mpg` decreases by 1.1 AND this effect manipulatively increases for each year after 1970. In essence, the effect of `log(horsepower)` on `mpg` is less negative for older cars and more negative for newer cars in the dataset.
+* The interaction term between `years_after_1970` and `log(horsepower)` has a negative effect on `mpg`, with a coefficient of -1.1, which means that for every 1% increase in horsepower `mpg` decreases by 1.1 AND this effect multiplicatively increases for each year after 1970. In essence, the effect of `log(horsepower)` on `mpg` is less negative for older cars and more negative for newer cars in the dataset.
 
-\newpage
+\hrulefill
 
 c) Predict the `mpg` of the following car: A red car built in the US in 1983 that is 180 inches long, has eight cylinders, displaces 350 cu. inches, weighs 4000 pounds, and has a horsepower of 260. Also give a 95% CI for your prediction.
 
-```{r case-3-4c, echo=FALSE}
+```{r case-3-4c, echo=FALSE, results='markup'}
 
 # Create a data frame with the car's characteristics
 new_car <- data.frame(cylinders = 8, displacement = 350, horsepower = 260, weight = 4000, years_after_1970 = 13, origin = '1')
@@ -1047,6 +1054,8 @@ predict(ols_7, new_car, interval = "confidence")
 The predicted `mpg` of the new car is 9.65 with a 95% confidence interval of (6.95, 12.3). 
 
 The extremely low predicted `mpg` is likely due to the fact that the car is high in all of the variables that are negatively associated with `mpg` (weight, horsepower, displacement and cylinders). However, we should also be extremely careful, the model is extrapolating outside of the range of the data, and should not be trusted. For example, the data has no values for cars with a horsepower over 230 and no values for cars made in 1983, so the model is making predictions based on the assumption that the relationships between the variables are constant outside of the range of the data, which is not a safe assumption. 
+
+\newpage
 
 # Simple Regression through simulations (Optional)
     
