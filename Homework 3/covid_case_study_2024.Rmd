@@ -267,7 +267,7 @@ covid_complete <- covid_rate_filtered_all %>%
 max_covid_col <- quantile(covid_complete$deaths_per100k, .98, na.rm = TRUE)
 min_covid_col <- quantile(covid_complete$deaths_per100k, 0, na.rm = TRUE)
 
-covid.heatmap <- plot_usmap(regions = "state",
+plot_usmap(regions = "state",
                             data = covid_complete,
                             values = "deaths_per100k", exclude = c("Hawaii", "Alaska"), color = "black")+
   scale_fill_distiller(palette = "YlOrRd", direction = 1,
