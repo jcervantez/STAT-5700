@@ -348,10 +348,68 @@ ii) Select possible variables in `county_data` as covariates. We provide `county
     b) In the following anaylsis, you may ignore the missing values.
 
 ```{r}
-county_data_sub <- county_data %>%
-  select(County, State, FIPS, Deep_Pov_All, PovertyAllAgesPct, PerCapitaInc, UnempRate2019, PctEmpFIRE, PctEmpChange1819, PctEmpConstruction, PctEmpTrans, PctEmpMining, PctEmpTrade, PctEmpInformation, PctEmpAgriculture, PctEmpManufacturing, PctEmpServices, PopDensity2010, TotalOccHU, LandAreaSQMiles2010, OwnHomePct, Age65AndOlderPct2010, TotalPop25Plus, Under18Pct2010, Ed2HSDiplomaOnlyPct, Ed3SomeCollegePct, Ed4AssocDegreePct, Ed5CollegePlusPct, ForeignBornPct, Net_International_Migration_Rate_2010_2019, NetMigrationRate1019, NaturalChangeRate1019, Metro2013, TotalPopEst2019, WhiteNonHispanicPct2010, NativeAmericanNonHispanicPct2010, BlackNonHispanicPct2010, AsianNonHispanicPct2010, HispanicPct2010, Type_2015_Update, Low_Education_2015_update, RuralUrbanContinuumCode2013, UrbanInfluenceCode2013, Perpov_1980_0711, HiCreativeClass2000, HiAmenity, Retirement_Destination_2015_Update, RecreationDependent2000, log_total_death_per100k)
+predictive_variables <- c(
+  "PovertyUnder18Pct", "Deep_Pov_All", "Deep_Pov_Children", "PovertyAllAgesPct", 
+  "MedHHInc", "PerCapitaInc", "PovertyAllAgesNum", "PovertyUnder18Num",
+  "PctEmpChange1019", "PctEmpChange1819", "PctEmpChange0719", "PctEmpChange0710",
+  "NumCivEmployed", 
+  "PctEmpFIRE", "PctEmpConstruction", "PctEmpTrans", "PctEmpMining", "PctEmpTrade",
+  "PctEmpInformation", "PctEmpAgriculture", "PctEmpManufacturing", "PctEmpServices",
+  "PctEmpGovt",
+  "PopDensity2010", "LandAreaSQMiles2010", "TotalHH", "TotalOccHU", "AvgHHSize",
+  "OwnHomeNum", "OwnHomePct", "NonEnglishHHPct", "HH65PlusAlonePct", "FemaleHHPct",
+  "FemaleHHNum", "NonEnglishHHNum", "HH65PlusAloneNum",
+  "Age65AndOlderPct2010", "Age65AndOlderNum2010", "TotalPop25Plus", "Under18Pct2010",
+  "Under18Num2010", "Ed1LessThanHSPct", "Ed2HSDiplomaOnlyPct", "Ed3SomeCollegePct",
+  "Ed4AssocDegreePct", "Ed5CollegePlusPct", "Ed1LessThanHSNum", "Ed2HSDiplomaOnlyNum",
+  "Ed3SomeCollegeNum", "Ed4AssocDegreeNum", "Ed5CollegePlusNum", "ForeignBornPct",
+  "ForeignBornEuropePct", "ForeignBornMexPct", "ForeignBornCentralSouthAmPct",
+  "ForeignBornAsiaPct", "ForeignBornCaribPct", "ForeignBornAfricaPct", "ForeignBornNum",
+  "ForeignBornCentralSouthAmNum", "ForeignBornEuropeNum", "ForeignBornMexNum",
+  "ForeignBornAfricaNum", "ForeignBornAsiaNum", "ForeignBornCaribNum",
+  "Net_International_Migration_Rate_2010_2019", "Net_International_Migration_2010_2019",
+  "Net_International_Migration_2000_2010", "Immigration_Rate_2000_2010",
+  "NetMigrationRate0010", "NetMigrationRate1019", "NetMigrationNum0010", "NetMigration1019",
+  "NaturalChangeRate1019", "NaturalChangeRate0010", "NaturalChangeNum0010", "NaturalChange1019",
+  "TotalPop2010", "TotalPopEst2010", "TotalPopEst2011", "TotalPopEst2012", "TotalPopEst2013",
+  "TotalPopEst2014", "TotalPopEst2015", "TotalPopEst2016", "TotalPopEst2017", "TotalPopEst2018",
+  "TotalPopEst2019", "TotalPopACS", "TotalPopEstBase2010",
+  "NonHispanicAsianPopChangeRate0010", "PopChangeRate1819", "PopChangeRate1019",
+  "PopChangeRate0010", "NonHispanicNativeAmericanPopChangeRate0010",
+  "HispanicPopChangeRate0010", "MultipleRacePopChangeRate0010",
+  "NonHispanicWhitePopChangeRate0010", "NonHispanicBlackPopChangeRate0010",
+  "MultipleRacePct2010", "WhiteNonHispanicPct2010", "NativeAmericanNonHispanicPct2010",
+  "BlackNonHispanicPct2010", "AsianNonHispanicPct2010", "HispanicPct2010",
+  "MultipleRaceNum2010", "WhiteNonHispanicNum2010", "BlackNonHispanicNum2010",
+  "NativeAmericanNonHispanicNum2010", "AsianNonHispanicNum2010", "HispanicNum2010",
+  "Type_2015_Recreation_NO", "Type_2015_Farming_NO", "Type_2015_Mining_NO",
+  "Type_2015_Government_NO", "Type_2015_Update", "Type_2015_Manufacturing_NO",
+  "Type_2015_Nonspecialized_NO", "RecreationDependent2000", "ManufacturingDependent2000",
+  "FarmDependent2003", "EconomicDependence2000", "RuralUrbanContinuumCode2003"
+)
 
-# county_data_sub <- county_data
+orig_vars <- c("County", "State", "FIPS", "Deep_Pov_All", "PovertyAllAgesPct", 
+                      "PerCapitaInc", "UnempRate2019", "PctEmpFIRE", "PctEmpChange1819", 
+                      "PctEmpConstruction", "PctEmpTrans", "PctEmpMining", "PctEmpTrade", 
+                      "PctEmpInformation", "PctEmpAgriculture", "PctEmpManufacturing", 
+                      "PctEmpServices", "PopDensity2010", "TotalOccHU", "LandAreaSQMiles2010", 
+                      "OwnHomePct", "Age65AndOlderPct2010", "TotalPop25Plus", "Under18Pct2010", 
+                      "Ed2HSDiplomaOnlyPct", "Ed3SomeCollegePct", "Ed4AssocDegreePct", 
+                      "Ed5CollegePlusPct", "ForeignBornPct", 
+                      "Net_International_Migration_Rate_2010_2019", "NetMigrationRate1019", 
+                      "NaturalChangeRate1019", "Metro2013", "TotalPopEst2019", 
+                      "WhiteNonHispanicPct2010", "NativeAmericanNonHispanicPct2010", 
+                      "BlackNonHispanicPct2010", "AsianNonHispanicPct2010", "HispanicPct2010", 
+                      "Type_2015_Update", "Low_Education_2015_update", 
+                      "RuralUrbanContinuumCode2013", "UrbanInfluenceCode2013", 
+                      "Perpov_1980_0711", "HiCreativeClass2000", "HiAmenity", 
+                      "Retirement_Destination_2015_Update", "RecreationDependent2000", 
+                      "log_total_death_per100k")
+
+all_vars <- union(predictive_variables, orig_vars)
+
+county_data_sub <- county_data %>%
+  select(all_of(all_vars))
 
 colSums(is.na(county_data_sub))
 
