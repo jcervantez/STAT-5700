@@ -31,7 +31,7 @@ options(scipen = 0, digits = 3)  # controls base R output
 # check if you have ISLR package, if not, install it
 # devtools::install_github("vqv/ggbiplot") 
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra) # add the packages needed!!!
+pacman::p_load(ISLR, tidyverse, data.table, Hmisc, corrplot, ggbiplot, factoextra, patchwork, cluster, gridExtra, skimr, GGally, broom, lmtest) # add the packages needed!!!
 ```
 
 
@@ -214,7 +214,7 @@ corrplot(corr_table, method="color")
 
     a) Report the PC1 and PC2 loadings. Are they unit vectors? Are they orthogonal? 
    
-    \textcolor{red}{\textbf{Answer:}} The PC1 loading is (-0.235, -0.244, 0.279, -0.261, 0.312, -0.313, -0.299, 0.393, 0.398, 0.376). The PC2 loading is (0.374, 0.367, -0.149, 0.321, -0.131, 0.209, 0.163, 0.332, 0.578, 0.260). As shown in the table below, PC1 and PC2 both are unit vectors and are orthogonal to each other.
+\textcolor{red}{\textbf{Answer:}} The PC1 loading is (-0.235, -0.244, 0.279, -0.261, 0.312, -0.313, -0.299, 0.393, 0.398, 0.376). The PC2 loading is (0.374, 0.367, -0.149, 0.321, -0.131, 0.209, 0.163, 0.332, 0.578, 0.260). As shown in the table below, PC1 and PC2 both are unit vectors and are orthogonal to each other.
     
 ```{r}
   pca <- prcomp(esteem, scale=FALSE, center=T)
@@ -235,15 +235,15 @@ corrplot(corr_table, method="color")
   
     b) Are there good interpretations for PC1 and PC2? (If loadings are all negative, take the positive loadings for the ease of interpretation)
     
-     \textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
+\textcolor{red}{\textbf{Answer:}} We can interpret PC1 as the difference between the total score for Questions 3, 5, 8, 9, 10 and the total score for Questions, 1, 2, 4, 6, 7. We do not see a good interpretation for PC2.
   
     c) How is the PC1 score obtained for each subject? Write down the formula.
     
-     \textcolor{red}{\textbf{Answer:}} $$PC1 = -0.235 \times (Q1_score) + -0.244 \times (Q2_score) + 0.279 \times (Q3_score) + -0.261 \times (Q4_score) + 0.312 \times (Q5_score) + -0.313 \times (Q6_score) + -0.299 \times (Q7_score) + 0.393 \times (Q8_score) + 0.398 \times (Q9_score) + 0.376 \times (Q10_score$$.
+\textcolor{red}{\textbf{Answer:}} $$PC1 = -0.235 \times (Q1_score) + -0.244 \times (Q2_score) + 0.279 \times (Q3_score) + -0.261 \times (Q4_score) + 0.312 \times (Q5_score) + -0.313 \times (Q6_score) + -0.299 \times (Q7_score) + 0.393 \times (Q8_score) + 0.398 \times (Q9_score) + 0.376 \times (Q10_score$$.
     
     d) Are PC1 scores and PC2 scores in the data uncorrelated? 
     
-    \textcolor{red}{\textbf{Answer:}} Yes, the PC1 and PC2 scores are uncorrelated. As shown in the table, the covariance of PC1 and PC2 is 0, implying that their correlation is 0.
+\textcolor{red}{\textbf{Answer:}} Yes, the PC1 and PC2 scores are uncorrelated. As shown in the table, the covariance of PC1 and PC2 is 0, implying that their correlation is 0.
     
     ```{r, results="markup"}
     # get correlation between PCA scores
@@ -253,7 +253,7 @@ corrplot(corr_table, method="color")
     
     e) Plot PVE (Proportion of Variance Explained) and summarize the plot. 
     
-    \textcolor{red}{\textbf{Answer:}} The plot shows that PC1 explains almost 50% of the variation and PC2 explains a little over 10% of the variance. We can also use this scree plot to determine the number of PCs that would be appropriate to use with our data. Using the elbow method, we see that using 2 PCs would be appropriate.
+\textcolor{red}{\textbf{Answer:}} The plot shows that PC1 explains almost 50% of the variation and PC2 explains a little over 10% of the variance. We can also use this scree plot to determine the number of PCs that would be appropriate to use with our data. Using the elbow method, we see that using 2 PCs would be appropriate.
     
     ```{r}
     # PVE plot
@@ -266,7 +266,7 @@ corrplot(corr_table, method="color")
   
     f) Also plot CPVE (Cumulative Proportion of Variance Explained). What proportion of the variance in the data is explained by the first two principal components?
     
-    \textcolor{red}{\textbf{Answer:}} Approximately 60% of variance in the data is explained by the first 2 PCs.
+\textcolor{red}{\textbf{Answer:}} Approximately 60% of variance in the data is explained by the first 2 PCs.
     
     ```{r}
     # CPVE plot
@@ -278,7 +278,7 @@ corrplot(corr_table, method="color")
   
     g) PC’s provide us with a low dimensional view of the self-esteem scores. Use a biplot with the first two PC's to display the data.  Give an interpretation of PC1 and PC2 from the plot. (try `ggbiplot` if you could, much prettier!)
     
-    \textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other. There still does not seem to be a clear interpretation of PC2, but PC2 seems to represent the rough difference between the total scores for questions 8, 9, 10 and questions 1-7.
+\textcolor{red}{\textbf{Answer:}} The biplot shows that PC1 roughly corresponds to the difference between the total scores for Questions 3, 5, 8, 9, 10 and the total scores for Questions, 1, 2, 4, 6, 7; PC2 does not have a clear interpretation. We also see that the scores for Questions 1, 2, and 4 are highly correlated; the scores for Questions 3 and 5 are highly correlated; the scores for Questions 6 and 7 are highly correlated; and the scores for Questions 8 and 10 are also highly correlated. This supports are prior analysis from our above EDA, where we saw that questions that are closer to being "adjacent" with each other are more correlated with each other than are questions that are far away from each other. There still does not seem to be a clear interpretation of PC2, but PC2 seems to represent the rough difference between the total scores for questions 8, 9, 10 and questions 1-7.
     
     ```{r}
 ggbiplot(pca, obs.scale = 2, var.scale = 1) + 
@@ -292,7 +292,7 @@ theme_bw()
 
     a) Find a reasonable number of clusters using within sum of squared with elbow rules.
     
-    \textcolor{red}{\textbf{Answer:}} Using the elbow method, it appears that 2 is a reasonable number of clusters.
+\textcolor{red}{\textbf{Answer:}} Using the elbow method, it appears that 2 is a reasonable number of clusters.
     
     ```{r}
     kmeans = fviz_nbclust(esteem, kmeans, method = "wss")
@@ -301,7 +301,7 @@ theme_bw()
     
     b) Can you summarize common features within each cluster?
     
-    \textcolor{red}{\textbf{Answer:}} Cluster 1 is characterized by higher scores for questions 3, 5, 8, 9, and 10. Cluster 2 is characterized by higher scores for questions 1, 2, 4, 6, and 7. This seems to roughly correspond to PC1, which can be interpreted as the approximate difference betwen the total score for questions 3, 5, 8, 9, and 10 and the total score for questions 1, 2, 4, 6, and 7.
+\textcolor{red}{\textbf{Answer:}} Cluster 1 is characterized by higher scores for questions 3, 5, 8, 9, and 10. Cluster 2 is characterized by higher scores for questions 1, 2, 4, 6, and 7. This seems to roughly correspond to PC1, which can be interpreted as the approximate difference betwen the total score for questions 3, 5, 8, 9, and 10 and the total score for questions 1, 2, 4, 6, and 7.
     
     ```{r, results="markup"}
     esteem.kmeans = kmeans(esteem, centers = 2, nstart=10)
@@ -314,7 +314,7 @@ theme_bw()
     
     c) Can you visualize the clusters with somewhat clear boundaries? You may try different pairs of variables and different PC pairs of the esteem scores.
     
-     \textcolor{red}{\textbf{Answer:}} When we cluster by PC1 and PC2, we see a very clear boundary given by PC1. Specifically, group 1 is almost entirely to the left of PC1 = 0, while group 2 is almost entirely to the right of PC2 = 0.
+\textcolor{red}{\textbf{Answer:}} When we cluster by PC1 and PC2, we see a very clear boundary given by PC1. Specifically, group 1 is almost entirely to the left of PC1 = 0, while group 2 is almost entirely to the right of PC2 = 0.
     
     ```{r}
     data.frame(pc1 = pca$x[, 1], 
@@ -338,7 +338,7 @@ theme_bw()
     
       - You may use PC1 of ASVAB as level of intelligence
       
-       \textcolor{red}{\textbf{Answer:}} See .rmd file for code. I created a dataframe that contains all of the above listed variables. Income87 has some negative values, so I use 0 for any negative values. Since we cannot take the log of 0, I use log1p, which takes the log(1 + [value]). I also merge in columns for PC1 of the Esteem scores and PC1 of the ASVAB scores, for which I ran PCA for the ASVAB data. 
+\textcolor{red}{\textbf{Answer:}} See .rmd file for code. I created a dataframe that contains all of the above listed variables. Income87 has some negative values, so I use 0 for any negative values. Since we cannot take the log of 0, I use log1p, which takes the log(1 + [value]). I also merge in columns for PC1 of the Esteem scores and PC1 of the ASVAB scores, for which I ran PCA for the ASVAB data. 
       
 ```{r}
   # PCA of ASVAB
@@ -764,41 +764,155 @@ closest_cluster <- which.min(distances)
 print(paste("The patient is closest to cluster:", closest_cluster))
 ```
 
+\newpage
 
 # Case Study: Fuel Efficiency in Automobiles
 
 **Linda will refine this case study by the following Monday, Feb 12th)**
 
-What determines how fuel efficient a car is? Are Japanese cars more fuel efficient?  To answer thes questions we will build various linear models  using 
+What determines how fuel efficient a car is? Are Japanese cars more fuel efficient?  To answer these questions we will build various linear models  using 
  the `Auto` dataset from the book `ISLR`. The original dataset contains information for about 400 different cars built in various years.  To get the data, first install the package ISLR which has been done in the first R-chunk.  The `Auto` dataset should be loaded automatically.  Original data source is here: https://archive.ics.uci.edu/ml/datasets/auto+mpg
 
 Get familiar with this dataset first. Tip: you can use the command `?ISLR::Auto` to view a description of the dataset. Our response variable will me `MPG`: miles per gallon.
 
 ## EDA
 
+```{r case-3-1a, include=FALSE}
+auto <- ISLR::Auto
+?ISLR::Auto
+hist(auto$acceleration) # to check if there are some outliers
 
-```{r}
-# auto <- ISLR::Auto
-# ?ISLR::Auto
-# summary(auto) 
-# hist(auto$acceleration) # to check if there are some outliers
+# Examine data variables and generate summaries
+str(auto)
+summary(auto) 
+skim(auto)
+
+# Set each variable to appropriate class
+auto <- auto |>
+  mutate(
+    cylinders = as.integer(cylinders), # set cylinder as integer
+    origin = as.factor(origin) # set origin as factor
+    )
 ```
 a) Explore the data, list the variables with clear definitions. Set each variable with its appropriate class. For example `origin` should be set as a factor. 
 
+\textcolor{red}{\textbf{Answer:}} 
+
+Variables and definitions: 
+
+- `mpg`: miles per gallon
+- `cylinders`: number of cylinders between 4 and 8
+- `displacement`: engine displacement (cubic inches)
+- `horsepower`: engine horsepower
+- `weight`: vehicle weight (lbs)
+- `acceleration`: time to accelerate from 0 to 60 mph (sec)
+- `year`: model year (e.g. 70 for 1970)
+- `origin`: origin of car (1. American, 2. European, 3. Japanese)
+- `name`: vehicle name
+
+Look to .rmd document for the code on EDA and setting variable to appropriate class.
+
+```{r case-3-1b, include=FALSE}
+
+# Check number of unique rows in dataset
+nrow(unique(auto))
+
+# Check number of unique car names in dataset
+length(unique(auto$name))
+
+```
+
+\hrulefill
+
 b) How many cars are included in this data set? 
+
+\textcolor{red}{\textbf{Answer:}} 
+There are 392 cars in the dataset (with 392 unique rows). There are also 301 unique car names in the dataset (that span different model years). 
+
+\newpage
 
 c) EDA, focus on pairwise plots and summary statistics. Briefly summarize your findings and any peculiarities in the data.
 
+```{r case-3-1c, echo=FALSE, results='markup', warning=FALSE, message=FALSE}
+
+auto_subset <- auto |>
+  select(
+    mpg, cylinders, displacement, horsepower, weight, acceleration, origin, year
+  )
+
+ggpairs(auto_subset)
+
+```
+
+\textcolor{red}{\textbf{Answer:}} 
+
+Summary of variables and findings based on pairwise plots: 
+
+- MPG: The distribution of `mpg` is right-skewed, with a few cars having very high `mpg` values. MPG is negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`, but positively correlated with `acceleration`. American cars have the lowest `mpg` on average, while Japanese cars have the highest `mpg` on average.
+- Cylinders: The distribution of `cylinders` is right-skewed. `cylinders` is positively correlated with `displacement`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average number of `cylinders`.
+- Displacement: The distribution of `displacement` is right-skewed. `displacement` is positively correlated with `cylinders`, `horsepower`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `displacement`.
+- Horsepower: The distribution of `horsepower` is right-skewed. `horsepower` is positively correlated with `cylinders`, `displacement`, and `weight`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `horsepower`.
+- Weight: The distribution of `weight` is right-skewed. `weight` is positively correlated with `cylinders`, `displacement`, and `horsepower`, but negatively correlated with `mpg` and `acceleration`. American cars have the highest average `weight`.
+- Acceleration: The distribution of `acceleration` is approximately normal. `acceleration` is positively correlated with `mpg`, but negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`.
+- Origin: There are more American cars in this dataset. American cars tend to have the highest `cylinders`, `displacement`, `horsepower`, `weight`, and lowest `mpg` on average. Japanese cars tend to have the lowest `cylinders`, `displacement`, `horsepower`, `weight`, and highest `mpg` on average. European cars tend to have similar characteristics to Japanese cars, but not to American cars.
+- Year: The distribution of `year` is approximately uniform. `year` is positively correlated with `mpg` and `acceleration`, but negatively correlated with `cylinders`, `displacement`, `horsepower`, and `weight`.
+
+\newpage
 
 ## What effect does `time` have on `MPG`?
 
 a) Start with a simple regression of `mpg` vs. `year` and report R's `summary` output. Is `year` a significant variable at the .05 level? State what effect `year` has on `mpg`, if any, according to this model. 
 
+```{r case-3-2a, echo=FALSE, results='markup'}
+
+# Fit OLS model
+ols_1 <- lm(mpg ~ year, data = auto)
+summary(ols_1)
+```
+
+\textcolor{red}{\textbf{Answer:}}
+Yes, year is a significant variable at the .05 level. The coefficient of year is 1.23, which means that for each additional year, the `mpg` of a car increases by 1.23 on average. Note that this does not imply a causal link between `year` and `mpg`, but an association between the two variables.
+
+\hrulefill
+
 b) Add `horsepower` on top of the variable `year` to your linear model. Is `year` still a significant variable at the .05 level? Give a precise interpretation of the `year`'s effect found here. 
+
+```{r case-3-2b, echo=FALSE, results='markup'}
+
+# Fit OLS model
+ols_2 <- lm(mpg ~ year + horsepower, data = auto)
+summary(ols_2)
+```
+
+\textcolor{red}{\textbf{Answer:}}
+Yes, year is still a significant variable at the .05 level. The coefficient of year is 0.65, which means that for each additional year, the `mpg` of a car increases by 0.75 on average, **holding `horsepower` constant**. This is a smaller effect than the one found in the previous model, which suggests that `horsepower` is a confounding variable in the relationship between `year` and `mpg`, and is correlated with power variables.
+
+\hrulefill
 
 c) The two 95% CI's for the coefficient of year differ among (a) and (b). How would you explain the difference to a non-statistician?
 
+\textcolor{red}{\textbf{Answer:}}
+The difference in the 95% CI's for the coefficient of year between the two models is due to the presence of `horsepower` in the second model. In the first model, there is less precision and more noise in the model since the effect of `horsepower` isn't taken into account. This results in a wider confidence interval for the coefficient of `year` in the first model. In the second model, including `horsepower` in the model makes the model more precise, and so the we can estimate a narrower confidence interval for the coefficient of `year` is narrower.
+
+\hrulefill
+
 d) Create a model with interaction by fitting `lm(mpg ~ year * horsepower)`. Is the interaction effect significant at .05 level? Explain the year effect (if any). 
+
+```{r case-3-2d, echo=FALSE, results='markup'}
+
+# Penalize scientific notation
+options(scipen = 999)
+
+# Fit OLS model with interaction
+ols_3 <- lm(mpg ~ year * horsepower, data = auto)
+summary(ols_3)
+
+```
+
+\textcolor{red}{\textbf{Answer:}}
+Yes, the interaction effect is significant at the .05 level. The direct effect (coefficient of year) has now increased to 2.19, and the interaction effect is -0.016. This means that for each additional year, the `mpg` of a car increases by 2.19 on average, but this effect is reduced by 0.016 for each additional horsepower. This suggests that the effect of `year` on `mpg` is moderated by `horsepower`.
+
+\newpage
 
 ## Categorical predictors
 
@@ -806,12 +920,70 @@ Remember that the same variable can play different roles! Take a quick look at t
 
 a) Fit a model that treats `cylinders` as a continuous/numeric variable. Is `cylinders` significant at the 0.01 level? What effect does `cylinders` play in this model?
 
+```{r case-3-3a, echo=FALSE, results='markup'}
+
+# Regress mpg on cylinders
+ols_4 <- lm(mpg ~ cylinders, data = auto)
+
+# Create summary
+summary(ols_4)
+```
+
+\textcolor{red}{\textbf{Answer:}}
+Yes, `cylinders` is significant at the .01 level. The coefficient of `cylinders` is -3.56, which means that for each additional cylinder, the `mpg` of a car decreases by 3.56 on average.
+
+However, the interpretation of the model is difficult, becuase the intercept represents zero cylinders, which is not a meaningful value. Also, cylinders only take on discrete values.
+
+\hrulefill
+
 b) Fit a model that treats `cylinders` as a categorical/factor. Is `cylinders` significant at the .01 level? What is the effect of `cylinders` in this model? Describe the `cylinders` effect over `mpg`. 
+
+```{r case-3-3b, echo=FALSE, results='markup'}
+
+# Change cylinders into a factor
+auto <- mutate(auto, cylinders = as.factor(cylinders))
+
+# Check the count of each level in the factor
+# table(auto$cylinders)
+
+# Regress mpg on cylinders (as a factor)
+ols_5 <- lm(mpg ~ cylinders, data = auto)
+
+# Summarize the model
+summary(ols_5)
+
+```
+
+\textcolor{red}{\textbf{Answer:}}
+If `cylinders` is treated as a categorical variable, the OLS regression will treat each factor as a separate indicator variable. Only `cylinders4` is significant at the .01 level. The coefficient of `cylinders4` is 8.73, which means that the `mpg` of a car with 4 cylinders is 8.73 higher on average than a car with 3 cylinders. 
+
+It makes sense that only `cyliners4` is significant, since the other levels of `cylinders` have very few observations.
+
+\hrulefill
 
 c) What are the fundamental differences between treating `cylinders` as a continuous and categorical variable in your models? 
 
+\textcolor{red}{\textbf{Answer:}}
+The fundamental difference between treating `cylinders` as a continuous and categorical variable is that the continuous model assumes a linear relationship between `cylinders` and `mpg`, while the categorical model assumes that each level of `cylinders` has a different effect on `mpg`. 
+
+The other main difference is that the continuous model is difficult to interpret, since the intercept represents zero cylinders, which is not a meaningful value. The categorical model is easier to interpret, since each level of `cylinders` has a separate coefficient. 
+
+Personally, we think it is best to use `cylinders` as a categorical model (where linearity is not assumed), with `cylinders4` as the reference level, since it is the most commonly observed level.
+
+\hrulefill
+
 d) Can you test the null hypothesis: fit0: `mpg` is linear in `cylinders` vs. fit1: `mpg` relates to `cylinders` as a categorical variable at .01 level?  
 
+```{r case-3-3d, echo=FALSE, results='markup'}
+
+# Test the null hypothesis
+anova(ols_4, ols_5)
+```
+
+\textcolor{red}{\textbf{Answer:}}
+Yes, we can test the null hypothesis that `mpg` is linear in `cylinders` vs. `mpg` relates to `cylinders` as a categorical variable at the .01 level using an ANOVA test. The p-value of the test is less than .01 with an F-statistic of 13.2, so we reject the null hypothesis and conclude that the model using `cylinders` as a categorical variable explains more of the variation and is significantly different from the model modeling `cylinders` as a linear relationship with `mpg`.
+
+\newpage
 
 ## Results
 
@@ -819,10 +991,71 @@ Final modeling question: we want to explore the effects of each feature as best 
   
 a) Describe the final model. Include diagnostic plots with particular focus on the model residuals and diagnoses.
 
+```{r case-3-4a, echo=FALSE, results='markup'}
+
+# Fit an exploratory model with all terms to see which ones explain variation
+ols_6 <- lm(mpg ~ cylinders + displacement + horsepower + weight + acceleration + year + origin + log(displacement) + log(horsepower) + log(weight) + log(acceleration) + log(year) + displacement^2 + horsepower^2 + weight^2 + acceleration^2 + year^2 + cylinders * displacement + cylinders * horsepower + cylinders * weight + cylinders * acceleration + cylinders * year + cylinders * origin + displacement * horsepower + displacement * weight + displacement * acceleration + displacement * year + displacement * origin + horsepower * weight + horsepower * acceleration + horsepower * year + horsepower * origin + weight * acceleration + weight * year + weight * origin + acceleration * year + acceleration * origin + year * origin, data = auto)
+
+# Re-center year so that terms are more interpretable
+auto <- auto |>
+  mutate(years_after_1970 = year - 70)
+
+# Simplify the model to exclude variables that are not close to significant
+# And exclude point estimates that are not large effects on mpg
+ols_7 <- lm(mpg ~ log(weight) + log(horsepower) + years_after_1970 * log(horsepower), data = auto)
+
+# Summarize the model
+summary(ols_7)
+
+# QQ plot
+plot(ols_7, which = 2)
+
+# Test if top part of QQ plot suggests that residuals are significantly right skewed
+shapiro.test(residuals(ols_7))
+
+# Residual plot
+plot(ols_7, which = 1)
+
+# Test for homoescedasticity, given residuals do not appear to be heteroscedastic
+bptest(ols_7)
+```
+
+\textcolor{red}{\textbf{Answer:}}
+The final model is a parsimonious linear regression model with `mpg` as the response variable and `log(weight)`, `log(horsepower)`, `years_after_1970`, and an interaction term between `log(horsepower)` and `years_after_1970` as the predictor variables. With only three transformed variables and an interaction term, the model has an adjusted R-squared of 0.868 (this is compared to a 0.90 adjusted R-squared in a full model with all variables, log terms, squared terms and two-way interactions). 
+
+However, the model's residuals are not normally distributed, as shown by the QQ plot and the Shapiro-Wilk test. The residuals are also heteroscedastic, as shown by the residual plot and the Breusch-Pagan test. However, even with non-normal residuals and heteroscedasticity, this only causes problems for inference and calculation of standard errors/confidence intervals; OLS is still a unbiased estimator so it is still a valid model for prediction.
+
+\hrulefill
+
 b) Summarize the effects found.
+
+\textcolor{red}{\textbf{Answer:}}
+
+* `log(weight)` has a negative effect on `mpg`, with a coefficient of -17, which means that (roughly) for every 1% increase in weight, `mpg` decreases by 17
+* `log(horsepower)` has a positive effect on `mpg`, with a coefficient of 80, which means that for every 1% increase in horsepower, `mpg` increase by 80. However, one should not interpret this in isolation, because there is an interaction term with `year` that changes the effect of `log(horsepower)` on `mpg` depending on the year of the car.
+* `years_after_1970` has a positive effect on `mpg`, with a coefficient of 5.8, which means that for every year increase in the car's model year, `mpg` increases by 5.8. However, this effect is not constant, as it interacts with `log(horsepower)`.
+* The interaction term between `years_after_1970` and `log(horsepower)` has a negative effect on `mpg`, with a coefficient of -1.1, which means that for every 1% increase in horsepower `mpg` decreases by 1.1 AND this effect multiplicatively increases for each year after 1970. In essence, the effect of `log(horsepower)` on `mpg` is less negative for older cars and more negative for newer cars in the dataset.
+
+\hrulefill
 
 c) Predict the `mpg` of the following car: A red car built in the US in 1983 that is 180 inches long, has eight cylinders, displaces 350 cu. inches, weighs 4000 pounds, and has a horsepower of 260. Also give a 95% CI for your prediction.
 
+```{r case-3-4c, echo=FALSE, results='markup'}
+
+# Create a data frame with the car's characteristics
+new_car <- data.frame(cylinders = 8, displacement = 350, horsepower = 260, weight = 4000, years_after_1970 = 13, origin = '1')
+
+# Predict the mpg of the new car
+predict(ols_7, new_car, interval = "confidence")
+
+```
+
+\textcolor{red}{\textbf{Answer:}}
+The predicted `mpg` of the new car is 9.65 with a 95% confidence interval of (6.95, 12.3). 
+
+The extremely low predicted `mpg` is likely due to the fact that the car is high in all of the variables that are negatively associated with `mpg` (weight, horsepower, displacement and cylinders). However, we should also be extremely careful, the model is extrapolating outside of the range of the data, and should not be trusted. For example, the data has no values for cars with a horsepower over 230 and no values for cars made in 1983, so the model is making predictions based on the assumption that the relationships between the variables are constant outside of the range of the data, which is not a safe assumption. 
+
+\newpage
 
 # Simple Regression through simulations (Optional)
     
