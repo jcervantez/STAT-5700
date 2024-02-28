@@ -36,7 +36,7 @@ if(!require("pacman")) install.packages("pacman")
 
 pacman::p_load(tidyverse, dplyr, ggplot2, ggthemes, data.table, lubridate,glmnet,
                GGally, RColorBrewer, ggsci, plotROC, usmap,
-               plotly, ggpubr, vistime, sf)
+               plotly, ggpubr, vistime, sf, car)
 ```
 
 # Background
@@ -316,9 +316,6 @@ county_data_unique <- county_data %>% distinct(County, State, .keep_all = TRUE)
 county_data <- county_data_unique %>%
   left_join(covid_data_filtered %>% select(County, State, total_death_per100k, log_total_death_per100k), by = c("County", "State"))
 
-
-
-
 ```
 
 ii) Select possible variables in `county_data` as covariates. We provide `county_data_sub`, a subset variables from `county_data`, for you to get started. Please add any potential variables as you wish. 
@@ -329,14 +326,69 @@ ii) Select possible variables in `county_data` as covariates. We provide `county
 
 ```{r}
 county_data_sub <- county_data %>%
-  select(County, State, FIPS, Deep_Pov_All, PovertyAllAgesPct, PerCapitaInc, UnempRate2019, PctEmpFIRE, PctEmpConstruction, PctEmpTrans, PctEmpMining, PctEmpTrade, PctEmpInformation, PctEmpAgriculture, PctEmpManufacturing, PctEmpServices, PopDensity2010, OwnHomePct, Age65AndOlderPct2010, TotalPop25Plus, Under18Pct2010, Ed2HSDiplomaOnlyPct, Ed3SomeCollegePct, Ed4AssocDegreePct, Ed5CollegePlusPct, ForeignBornPct, Net_International_Migration_Rate_2010_2019, NetMigrationRate1019, NaturalChangeRate1019, TotalPopEst2019, WhiteNonHispanicPct2010, NativeAmericanNonHispanicPct2010, BlackNonHispanicPct2010, AsianNonHispanicPct2010, HispanicPct2010, Type_2015_Update, RuralUrbanContinuumCode2013, UrbanInfluenceCode2013, Perpov_1980_0711, HiCreativeClass2000, HiAmenity, Retirement_Destination_2015_Update)
+  select(County, State, FIPS, Deep_Pov_All, PovertyAllAgesPct, PerCapitaInc, UnempRate2019, PctEmpFIRE, PctEmpChange1819, PctEmpConstruction, PctEmpTrans, PctEmpMining, PctEmpTrade, PctEmpInformation, PctEmpAgriculture, PctEmpManufacturing, PctEmpServices, PopDensity2010, TotalOccHU, LandAreaSQMiles2010, OwnHomePct, Age65AndOlderPct2010, TotalPop25Plus, Under18Pct2010, Ed2HSDiplomaOnlyPct, Ed3SomeCollegePct, Ed4AssocDegreePct, Ed5CollegePlusPct, ForeignBornPct, Net_International_Migration_Rate_2010_2019, NetMigrationRate1019, NaturalChangeRate1019, Metro2013, TotalPopEst2019, WhiteNonHispanicPct2010, NativeAmericanNonHispanicPct2010, BlackNonHispanicPct2010, AsianNonHispanicPct2010, HispanicPct2010, Type_2015_Update, Low_Education_2015_update, RuralUrbanContinuumCode2013, UrbanInfluenceCode2013, Perpov_1980_0711, HiCreativeClass2000, HiAmenity, Retirement_Destination_2015_Update, RecreationDependent2000, log_total_death_per100k)
+
+# county_data_sub <- county_data
+
+colSums(is.na(county_data_sub))
+
+county_data_sub <- na.omit(county_data_sub)
+
+county_data_sub <- as.data.frame(county_data_sub)
+
+y_col <- grep("log_total_death_per100k", colnames(county_data_sub))
 ```
 
 iii) Use LASSO to choose a parsimonious model with all available sensible county-level information. **Force in State** in the process. Why we need to force in State? You may use `lambda.1se` to choose a smaller model. 
 
+Even when I use the entire dataest of `county_data` to run LASSO with lambda.1se, only the states have non-zero coefficients. Thus, I use lambda.min to choose my coefficients.
+
+```{r}
+y_col <- grep("log_total_death_per100k", colnames(county_data_sub))
+Y <- county_data_sub[, y_col] # extract Y
+X <- model.matrix(log_total_death_per100k~., data=county_data_sub)[, -1]
+
+state_cols <- grep("State", colnames(X))
+penalty_vec <- rep(1, ncol(X))
+penalty_vec[state_cols] <- 0
+
+fit.fl.force.cv <- cv.glmnet(X, Y, alpha=1, nfolds=10, intercept = T,
+                       penalty.factor =penalty_vec)  # force the states into the model
+coef.force.min <- coef(fit.fl.force.cv, s="lambda.min")
+var.force.min <- coef.force.min[which(coef.force.min !=0),]  
+rownames(as.matrix(var.force.min))[-1]
+```
+
 iv) Use a quick backward elimination to fine tune the LASSO model from iii). Again **force in State** in the process. 
 
+```{r, results=TRUE}
+coef.min <- coef(fit.fl.force.cv, s="lambda.min")  
+coef.min <- coef.min[which(coef.min !=0),]   # get the non=zero coefficients
+var.min <- rownames(as.matrix(coef.min))[-1] # output the names without intercept
+lm.input <- as.formula(paste("log_total_death_per100k", "~", paste(paste0("`", var.min, "`"), collapse = "+"))) 
+# prepare for lm fomulae
+lm.input
+
+data_lm = as.data.frame(X)
+data_lm$log_total_death_per100k <- Y
+grep("log_total_death_per100k", colnames(data_lm))
+fit.min.lm <- lm(lm.input, data=data_lm)  # debiased or relaxed LASSO
+summary(fit.min.lm) 
+Anova(fit.min.lm) 
+
+fit2 <- update(fit.min.lm, .~. -PovertyAllAgesPct, data_lm)
+Anova(fit2) 
+
+fit3 <- update(fit2, .~. -PctEmpChange1819)
+Anova(fit3) 
+
+fit4 <- update(fit3, .~. -NaturalChangeRate1019)
+Anova(fit4)
+```
+
 v) If necessary, reduce the model from iv) to a final model with all variables being significant at 0.05 level. Are the linear model assumptions all reasonably met?
+
+All variables (other than states, which we have forced in) are significant at a 0.05 level.
 
 vi) It has been shown that COVID affects elderly the most. It is also claimed that the COVID death rate among African Americans and Latinos is higher. Does your analysis support these arguments?
 
