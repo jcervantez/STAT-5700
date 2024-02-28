@@ -457,19 +457,24 @@ fit.min.lm <- lm(lm.input, data=data_lm)  # debiased or relaxed LASSO
 summary(fit.min.lm) 
 Anova(fit.min.lm) 
 
-fit2 <- update(fit.min.lm, .~. -PovertyAllAgesPct, data_lm)
+fit2 <- update(fit.min.lm, .~. -Ed1LessThanHSPct, data_lm)
 Anova(fit2) 
 
-fit3 <- update(fit2, .~. -PctEmpChange1819)
-Anova(fit3) 
-
-fit4 <- update(fit3, .~. -NaturalChangeRate1019)
-Anova(fit4)
+fit3 <- update(fit2, .~. -PopChangeRate1019)
+Anova(fit3)
 ```
 
 v) If necessary, reduce the model from iv) to a final model with all variables being significant at 0.05 level. Are the linear model assumptions all reasonably met?
 
 All variables (other than states, which we have forced in) are significant at a 0.05 level.
+
+```{r}
+# residual plot
+plot(fit3, 1)
+
+# QQ plot
+plot(fit3, 2)
+```
 
 vi) It has been shown that COVID affects elderly the most. It is also claimed that the COVID death rate among African Americans and Latinos is higher. Does your analysis support these arguments?
 
