@@ -316,6 +316,30 @@ county_data_unique <- county_data %>% distinct(County, State, .keep_all = TRUE)
 county_data <- county_data_unique %>%
   left_join(covid_data_filtered %>% select(County, State, total_death_per100k, log_total_death_per100k), by = c("County", "State"))
 
+
+## STEPS TO INCLUDE STATE LEVEL COUNTS IN COUNTY DATA
+
+state_level_data <- county_data %>%
+  filter(!is.na(total_death_per100k)) %>% # Exclude rows with NA in total_death_per100k
+  left_join(st_crosswalk, by = c("State" = "abb")) %>%
+  group_by(State) %>%
+  summarise(
+    total_death_per100k = sum(total_death_per100k, na.rm = TRUE),
+    # Assuming TotalPopEst2019 is available and accurate for the calculation
+    log_total_death_per100k = log(sum(total_death_per100k * TotalPopEst2019 / 100000, na.rm = TRUE) + 1)
+  )
+
+# Join the state-level aggregated data back to the original dataset
+county_data <- county_data %>%
+  left_join(state_level_data, by = "State", suffix = c("", "_state")) %>%
+  mutate(
+    total_death_per100k = if_else(is.na(total_death_per100k), total_death_per100k_state, total_death_per100k),
+    log_total_death_per100k = if_else(is.na(log_total_death_per100k), log_total_death_per100k_state, log_total_death_per100k)
+  ) %>%
+  select(-total_death_per100k_state, -log_total_death_per100k_state) # Remove the temporary state-level columns
+
+
+
 ```
 
 ii) Select possible variables in `county_data` as covariates. We provide `county_data_sub`, a subset variables from `county_data`, for you to get started. Please add any potential variables as you wish. 
