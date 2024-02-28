@@ -1,9 +1,9 @@
 ---
 title: "COVID-19 Case Study"
 author:
-- Group Member Jose Cervantez
-- Group Member Bethany Hsaio
-- Group Member Rob Kuan
+- Jose Cervantez
+- Bethany Hsaio
+- Rob Kuan
 date: ' '
 output:
   pdf_document:
