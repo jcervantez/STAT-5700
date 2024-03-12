@@ -410,24 +410,6 @@ orig_vars <- c("county_state", "State", "FIPS", "Deep_Pov_All", "PovertyAllAgesP
                       "Retirement_Destination_2015_Update", "RecreationDependent2000",
                       "log_total_death_per100k")
 
-# orig_vars <- c("County", "State", "FIPS", "Deep_Pov_All", "PovertyAllAgesPct",
-#                       "PerCapitaInc", "UnempRate2019", "PctEmpFIRE", "PctEmpChange1819",
-#                       "PctEmpConstruction", "PctEmpTrans", "PctEmpMining", "PctEmpTrade",
-#                       "PctEmpInformation", "PctEmpAgriculture", "PctEmpManufacturing",
-#                       "PctEmpServices", "PopDensity2010", "TotalOccHU", "LandAreaSQMiles2010",
-#                       "OwnHomePct", "Age65AndOlderPct2010", "TotalPop25Plus", "Under18Pct2010",
-#                       "Ed2HSDiplomaOnlyPct", "Ed3SomeCollegePct", "Ed4AssocDegreePct",
-#                       "Ed5CollegePlusPct", "ForeignBornPct",
-#                       "Net_International_Migration_Rate_2010_2019", "NetMigrationRate1019",
-#                       "NaturalChangeRate1019", "Metro2013", "TotalPopEst2019",
-#                       "WhiteNonHispanicPct2010", "NativeAmericanNonHispanicPct2010",
-#                       "BlackNonHispanicPct2010", "AsianNonHispanicPct2010", "HispanicPct2010",
-#                       "Type_2015_Update", "Low_Education_2015_update",
-#                       "RuralUrbanContinuumCode2013", "UrbanInfluenceCode2013",
-#                       "Perpov_1980_0711", "HiCreativeClass2000", "HiAmenity",
-#                       "Retirement_Destination_2015_Update", "RecreationDependent2000",
-#                       "log_total_death_per100k")
-
 all_vars <- union(predictive_variables, orig_vars)
 
 county_data_sub <- county_data %>%
@@ -485,7 +467,7 @@ summary(fit2)
 
 v) If necessary, reduce the model from iv) to a final model with all variables being significant at 0.05 level. Are the linear model assumptions all reasonably met?
 
-All variables (other than states, which we have forced in) are significant at a 0.05 level.
+\textcolor{red}{\textbf{Answer:}} All variables (other than states, which we have forced in) are significant at a 0.05 level. The linear model assumptions are reasonably met. Linearity appears to be satisfied as the residuals seem to follow a symmetric pattern. Homoscedasticity appears to be satisfied since the residuals are mostly evenly distributed within a band. Finally, normality appears to be reasonably satisfied as the QQ plot shows a relatively linear trend.
 
 ```{r}
 # residual plot
