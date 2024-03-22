@@ -511,11 +511,37 @@ Please summarize this project as follows  (no more than one page):
 
 \textcolor{red}{\textbf{Executive Summary:}}
 
+\textbf{Goal of the Study:}
+
 The goal of this study is to identify factors at the county level that have the most impact on COVID death rates. By identifying such factors, we can use this information to guide what interventions policy makers create to reduce COVID death rates. 
 
+\textbf{Data:}
 
+The dataset used for this analysis is assembled from several sources:
+
+\begin{itemize}
+  \item County-level COVID-19 infection and fatality data from the New York Times, which provides daily cumulative numbers on infections and fatalities for each county in the United States. Additional data for New York City is obtained from the NYC Department of Health and Mental Hygiene.
+  \item County-level socioeconomic data from the USDA Economic Research Service's Atlas of Rural and Small-Town America. This includes data on income (poverty level and household income), jobs (employment type, rate, and change), people (population size, density, education level, race, age, household size, and migration rates), and county classifications (rural or urban on a rural-urban continuum scale).
+  \item Intervention policy data manually compiled by the research team, which includes the dates that interventions and lockdown policies were implemented and lifted at the county level.
+\end{itemize}
+
+The data was assembled using the following steps:
+
+\begin{itemize}
+  \item Extracting relevant information from the NYC data and formatting it to match the structure of the county-level data.
+  \item Filtering the data to include only counties in the continental United States and combining the NYC data with the county-level data.
+  \item Converting the date information to a standardized format and creating a 'week' variable based on the date of the first COVID-19 case in the US.
+  \item Merging the COVID-19 data with the county-level socioeconomic data using the FIPS (Federal Information Processing Standards) code as a unique identifier for each county.
+  \item Handling missing data by replacing NA values in the cumulative cases and deaths columns with zeros and dropping counties with missing FIPS codes.
+  \item Converting date columns in the intervention policy data to a standardized format.
+  \item Merging the various socioeconomic datasets and the intervention policy data to create a comprehensive dataset for analysis.
+\end{itemize}
+
+\textbf{Analyses and Findings:}
 
 To conduct our analysis, we used linear regression to understand the effect sizes of each covariate and LASSO to select the variables with the highest impact on COVID death rates. We also used backwards elimination to retain the set of variables with significant effects on COVID death rates. Through this analysis, we identified the percentage of adults age 25 and over with at least a 4-year college degree and the net migration rate from 2010-2019 as the variables with the highest impact on COVID death rates at the county level. Both of these variables had small negative effects on COVID death rates, indicating that higher proportions of adults with at least a college education and higher net migration rates are associated with lower COVID death rates. State effect sizes had larger magnitudes, indicating that the state a county is in has a larger effect on the COVID death rate than both of the aforementioned variables.
+
+\textbf{Limitations:}
 
 This analysis has several limitations. First, we did not include any interaction effects, so our analysis only investigates the effect of independent variables. This means that our analysis does not consider how interactions between variables, such as age and race, impact COVID death rates. Second, our analysis is limited by the variables available to us. One important variable omitted from the data is the political orientation of each county. Policymakers' reactions to COVID were highly polarized between political parties, and without this variable, we are unable to quantify the effect size of political orientation on COVID death rates. Finally, all of these analyses are merely correlational and we cannot conclude any causal effects. That is, although we can quantify effect sizes, we cannot conclude that any covariate causes an increase or decrease in COVID death rates.
 
