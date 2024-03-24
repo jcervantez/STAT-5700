@@ -1,9 +1,9 @@
 ---
 title: " Modern Data Mining, HW 3"
 author:
-- Group Member 1
-- Group Member 2
-- Group Member 3
+- Jose Cervantez
+- Bethany Hsaio
+- Rob Kuan
 date: '11:59 pm, 03/17, 2024'
 output:
   pdf_document:
@@ -26,15 +26,31 @@ urlcolor: blue
 
 
 ```{r setup, include=FALSE}
+
+# Remove all existing variables from environment
+rm(list=ls())
+
+# Set options
 knitr::opts_chunk$set(echo = FALSE, results = "hide", fig.width=8, fig.height=4)
 options(scipen = 0, digits = 3)  # controls base R output
+
+# Load libraries
 if(!require('pacman')) {install.packages('pacman')}
-pacman::p_load(bestglm, glmnet, leaps, car, tidyverse, pROC, caret) # add the packages needed
+pacman::p_load(
+  bestglm, 
+  glmnet, 
+  leaps, 
+  car, # package companion to applied regression models
+  tidyverse, 
+  pROC, 
+  caret,
+  lmtest, # package for testing linear regression models
+  pander, # pretty formatting of tables
+  broom # tidy output from statistical models
+  ) # add the packages needed
 ```
 
 \pagebreak
-
-
 
 # PartI: Model Building 
 
@@ -44,94 +60,19 @@ The main job in this part is a rather involved case study about devastating covi
 
 For covid case study, the major time and effort would be needed in EDA portion.
 
-## Objectives
+\hrulefill
 
-- Model building process
+\textcolor{red}{\textbf{Answer:}}
 
-- Methods
-    - Model selection
-        + LASSO (L1 penalty)
-        + A quick backward elimination
-        
-- Understand the criteria 
-    - Testing Errors
-    - `K fold Cross Validation`
-    - `LASSO` 
-- Packages
-    - `lm()`, `Anova`
-    - `regsubsets()`
-    - `glmnet()` & `cv.glmnet()`
+See file covid_case_study_2024.pdf for our work and answers to Part I.  
 
-## Review materials
-
-- Study lecture: Regularization
-- Study lecture: Multiple regression
-
-Review the code and concepts covered during lectures: multiple regression, penalized regression through elastic net (only LSASSO). 
-
-**Important Notice:** The focus of this part is Covid case study. 
-
-## Case study: COVID19
-
-See a seperate file covid_case_study_2024.Rmd for details. 
-
-* Start the EDA as earlier as possible.
-* Please check previous midterms where we used the same dataset. 
- 
-
+\newpage
 
 # Part II: Logistic Regression
 
 Logistic regression is used for modeling categorical response variables. The simplest scenario is how to identify risk factors of heart disease? In this case the response takes a possible value of `YES` or `NO`. Logit link function is used to connect the probability of one being a heart disease with other potential risk factors such as `blood pressure`, `cholestrol level`, `weight`. Maximum likelihood function is used to estimate unknown parameters. Inference is made based on the properties of MLE. We use AIC to help nailing down a useful final model. Predictions in categorical response case is also termed as `Classification` problems. One immediately application of logistic regression is to provide a simple yet powerful classification boundaries. Various metrics/criteria are proposed to evaluate the quality of a classification rule such as `False Positive`, `FDR` or `Mis-Classification Errors`. 
 
 LASSO with logistic regression is a powerful tool to get dimension reduction. We will not use it here in this work. 
-
-
-## Objectives
-
-- Understand the model
-  - logit function
-    + interpretation
-  - Likelihood function
-- Methods
-    - Maximum likelihood estimators
-        + Z-intervals/tests
-        + Chi-squared likelihood ratio tests
-- Metrics/criteria 
-    - Sensitivity/False Positive
-    - True Positive Prediction/FDR
-    - Misclassification Error/Weighted MCE
-    - Residual deviance
-    - Training/Testing errors
-
-- R functions/Packages
-    - `glm()`, `Anova`
-    - `pROC`
-
-- Data needed
-    - `Framingham.dat`
-  
-## R Markdown / Knitr tips
-
-You should think of this R Markdown file as generating a polished report, one that you would be happy to show other people (or your boss). There shouldn't be any extraneous output; all graphs and code run should clearly have a reason to be run. That means that any output in the final file should have explanations.
-
-A few tips:
-
-* Keep each chunk to only output one thing! In R, if you're not doing an assignment (with the `<-` operator), it's probably going to print something.
-* If you don't want to print the R code you wrote (but want to run it, and want to show the results), use a chunk declaration like this: `{r, echo=F}`. Notice this is set as a global option. 
-* If you don't want to show the results of the R code or the original code, use a chunk declaration like: `{r, include=F}`
-* If you don't want to show the results, but show the original code, use a chunk declaration like: `{r, results='hide'}`.
-* If you don't want to run the R code in a chunk at all use `{r, eval = F}`.
-* We show a few examples of these options in the below example code. 
-* For more details about these R Markdown options, see the [documentation](http://yihui.name/knitr/options/).
-* Delete the instructions and this R Markdown section, since they're not part of your overall report.
-
-## Review
-
-Review the code and concepts covered in
-
-* Module Logistic Regressions/Classification
-
 
 ## Framingham heart disease study 
 
@@ -141,10 +82,16 @@ Liz is a patient with the following readings: `AGE=50, GENDER=FEMALE, SBP=110, D
 
 To keep our answers consistent, use a subset of the data, and exclude anyone with a missing entry. For your convenience, we've loaded it here together with a brief summary about the data.
 
+``` {r load-libraries, include = F}
+
+
+```
+
+
 ```{r data preparation, include=F}
 # Notice that we hide the code and the results here
 # Using `include=F` in the chunk declaration. 
-hd_data <- read.csv("Framingham.dat")
+hd_data <- read.csv("data/Framingham.dat")
 str(hd_data) 
 
 ### Renames, setting the variables with correct natures...
@@ -166,7 +113,7 @@ table(hd_data$HD) # HD: 311 of "0" and 1095 "1"
 ```
 
 After a quick cleaning up here is a summary about the data:
-```{r data summary, comment=" "}
+```{r data summary, echo = F, comment=" ",  results = T}
 # using the comment="     ", we get rid of the ## in the output.
 summary(hd_data.f)
 ```
@@ -188,40 +135,164 @@ Conceptual questions to understand the building blocks of logistic regression. A
 
 i. Take a random subsample of size 5 from `hd_data_f` which only includes `HD` and `SBP`. Also set  `set.seed(471)`. List the five observations neatly below. No code should be shown here.
 
+\textcolor{red}{\textbf{Answer:}}
+
+```{r, echo=F, results=T, comment=" "}
+# Set seed
+set.seed(471)
+
+# Take a random subsample of size 5 from hd_data_f
+index = sample(1:1393, 5)
+
+# Print the table
+hd_data.f[index, c("HD", "SBP")]
+
+```
+
+\hrulefill
+
 ii. Write down the likelihood function using the five observations above.
+
+\textcolor{red}{\textbf{Answer:}}
+The likelihood function using the five observations is: 
+
+$$
+\begin{aligned} \mathcal{L}\left(\beta_0, \beta_1 \mid \mathrm{Data}\right) &  =\frac{e^{\beta_0+156 \beta_1}}{1+e^{\beta_0+156 \beta_1}} \cdot
+\frac{e^{\beta_0+164 \beta_1}}{1+e^{\beta_0+164 \beta_1}} \cdot \frac{1}{1+e^{\beta_0+156 \beta_1}} \cdot
+\frac{1}{1+e^{\beta_0+138 \beta_1}} \cdot
+\frac{1}{1+e^{\beta_0+155 \beta_1}} 
+\end{aligned}
+$$
+\hrulefill
 
 iii. Find the MLE based on this subset using glm(). Report the estimated logit function of `SBP` and the probability of `HD`=1. Briefly explain how the MLE are obtained based on ii. above.
 
+\textcolor{red}{\textbf{Answer:}}
+
+```{r, echo=F, results=T}
+set.seed(471)
+
+fit_1 <- glm(HD ~ SBP, hd_data.f[index,], family = binomial)
+summary(fit_1)
+```
+
+Based on maximum likelihood estimation, the equation for the estimated model is as follows. 
+
+$$
+Logit = -334.96 + 2.56 \times SBP
+$$
+
+The probability of `HD`=1 is equal to: 
+
+$$ 
+\hat{P}(H D=1 \mid S B P)=\frac{e^{-334.96+2.56 \times S B P}}{1+e^{-334.96+2.56 \times S B P}}
+$$
+
+NOTE: the five samples that are randomly chosen, when classified, have **perfect separation**. This is why the parameters values are so extreme. 
+
+The maximum likelihood was obtained using the Fisher Scoring algorithm (which uses the Fisher Information Matrix) to estimate the parameters that are most likely to have generated the observed data. The algorithm iteratively updates the parameter estimates until the log-likelihood converges to a maximum value.
+
+\hrulefill
+
 iv. Evaluate the probability of Liz having heart disease. 
+
+\textcolor{red}{\textbf{Answer:}}
+
+The probability of Liz having heart disease is 2.22e-16 (which is an extremely small probability close to zero). Again, this is because the five data observations selected using seed(471) have **perfect separation** and can be classified with 100% accuracy. 
+
+```{r, echo=F, results=T}
+
+# Predict Liz's prob of having heart disease (using probability scale of response)
+fit1.predict <- predict(fit_1, hd_data.new, type = "response")
+
+# Print the probability
+print(paste0("Liz's probability of heart disease is ",fit1.predict))
+
+```
+
+\newpage
 
 #### Identify important risk factors for `Heart.Disease.`
 
 We focus on understanding the elements of basic inference method in this part. Let us start a fit with just one factor, `SBP`, and call it `fit1`. We then add one variable to this at a time from among the rest of the variables. For example
+
 ```{r, results='hide'}
+
+# Fit with one predictor
 fit1 <- glm(HD~SBP, hd_data.f, family=binomial)
 summary(fit1)
+
+# Test improvement in fit by adding each additional predictor
 fit1.1 <- glm(HD~SBP + AGE, hd_data.f, family=binomial)
 summary(fit1.1)
-# you will need to finish by adding each other variable 
-# fit1.2...
+
+fit1.2 <- glm(HD ~ SBP + SEX, hd_data.f, family=binomial)
+summary(fit1.2)
+
+fit1.3 <- glm(HD ~ SBP + DBP, hd_data.f, family=binomial)
+summary(fit1.3)
+
+fit1.4 <- glm(HD ~ SBP + CHOL, hd_data.f, family=binomial)
+summary(fit1.4)
+
+fit1.5 <- glm(HD ~ SBP + FRW, hd_data.f, family=binomial)
+summary(fit1.5)
+
+fit1.6 <- glm(HD ~ SBP + CIG, hd_data.f, family=binomial)
+summary(fit1.6)
 ```
 
 i. Which single variable would be the most important to add?  Add it to your model, and call the new fit `fit2`.  
 
 We will pick up the variable either with highest $|z|$ value, or smallest $p$ value. Report the summary of your `fit2` Note: One way to keep your output neat, we will suggest you using `xtable`. And here is the summary report looks like.
-```{r the most important addition, results='asis', comment="   "}
+
+\textcolor{red}{\textbf{Answer:}}
+
+SEX is the most important factor, as it is has the highest Z-value and results in the lowest AIC of all the other models. A summary of the table is below: 
+
+```{r, results=T}
+
+# Fit glm with SEX as additional predictor
+fit2 <- glm(HD ~ SBP + SEX, hd_data.f, family=binomial)
+
 ## How to control the summary(fit2) output to cut some junk?
 ## We could use packages: xtable or broom. 
-## Assume the fit2 is obtained by SBP + AGE
-library(xtable)
-options(xtable.comment = FALSE)
-fit2 <- glm(HD~SBP + AGE, hd_data.f, family=binomial)
-xtable(fit2)
+
+# Print the summary of the fit2 model
+pander(tidy(fit2), caption = "Summary of `fit2` model")
 ```
 
+\hrulefill
+
 ii. Is the residual deviance of `fit2` always smaller than that of `fit1`? Why or why not?
+
+\textcolor{red}{\textbf{Answer:}}
+
+Yes, the residual deviance of `fit2` (no matter which predictor variables is used) will always be smaller than that of `fit1`. This is because adding an additional predictor will always add additional information to the model, which will reduce the residual deviance. 
+
+However, the AIC may not improve, because that takes into account the number of parameters in the model. 
   
+\hrulefill
+
 iii. Perform both the Wald test and the Likelihood ratio tests (Chi-Squared) to see if the added variable is significant at the .01 level.  What are the p-values from each test? Are they the same? 
+
+\textcolor{red}{\textbf{Answer:}}
+
+The p-values of both tests are displayed in the tables below. They are not the same, becuase the Wald test, the likelihood ratio test, and the score test (not mentioned in class) are all different ways of estimating the significance of the added variable. Even those these three tests are asympototically equivalent, in finite samples they may have different estimates. 
+
+Generally speaking, the likelihood ratio test is superior than the Wald Test because it does not require estimating an additional parameter (the standard deviation of the coefficient in `fit 2`). 
+
+```{r 2.1.1.3 , results='asis', comment=" "}
+
+# Likelihood ratio test
+pander(lrtest(fit2, fit1), caption = "Likelihood Ratio Test (Chisquared)" )
+
+# Wald test
+pander(linearHypothesis(fit2, "SEXMALE = 0", test = "Chisq"), 
+       caption = "Wald Test (Chisquared)" )
+```
+
+\newpage
 
 ####  Model building
 
@@ -229,11 +300,113 @@ Start with all variables. Our goal is to fit a well-fitting model, that is still
 
 i. Use backward selection method. Only keep variables whose coefficients are significantly different from 0 at .05 level. Kick out the variable with the largest p-value first, and then re-fit the model to see if there are other variables you want to kick out.
 
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r 2.1.1.3, results = TRUE, comment = " "}
+
+# Fit the model with all variables
+fit_all.1 <- glm(HD ~ ., hd_data.f,
+                 family=binomial)
+#summary(fit_all.1)
+
+# ------------------------------------------------------------------------------
+# Fit the model by continuously kicking out lowest non-significant p-value
+# ------------------------------------------------------------------------------
+
+# Remove DBP
+fit_all.2 <- glm(HD ~ AGE + SEX + SBP + CHOL + FRW + CIG, hd_data.f,
+                 family=binomial)
+#summary(fit_all.2)
+
+# Remove FRW
+fit_all.3 <- glm(HD ~ AGE + SEX + SBP + CHOL + CIG, hd_data.f,
+                 family=binomial)
+#summary(fit_all.3)
+
+# Remove CIG
+fit_all.4 <- glm(HD ~ AGE + SEX + SBP + CHOL, hd_data.f,
+                 family=binomial)
+#summary(fit_all.4)
+
+# Print final model
+pander(tidy(fit_all.4), caption = "Summary of Best Model (Backwards Selection Method)")
+
+```
+
+\hrulefill
+
 ii. Use AIC as the criterion for model selection. Find a model with small AIC through exhaustive search. Does exhaustive search  guarantee that the p-values for all the remaining variables are less than .05? Is our final model here the same as the model from backwards elimination? 
+
+\textcolor{red}{\textbf{Answer:}}
+
+Exhaustive search does not gaurantee that all the remaining variables are less than 0.05. It only guarantees that the model with the smallest AIC is selected.
+
+This model is different than the model selected from backwards elimination. 
+
+``` {r 2.1.1.3.2, results = T, message = F}
+
+# Get the design matrix without intercept values
+Xy <- hd_data.f |>
+  relocate(HD, .after = CIG) # Swap the first column with the last column
+
+fit.all <- bestglm(Xy, IC = "AIC", method = "exhaustive", family = binomial)
+
+# Print the best model
+pander(tidy(fit.all$BestModel), caption = "Summary of Best Model (Exhaustive Search Method)")
+
+```
+
+\hrulefill
 
 iii. Use the model chosen from part ii. as the final model. Write a brief summary to describe important factors relating to Heart Diseases (i.e. the relationships between those variables in the model and heart disease). Give a definition of “important factors”. 
 
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r 2.1.1.3.3 , results = T}
+
+betas <- tidy(fit.all$BestModel)$estimate
+odds_increase <- paste0(round((exp(betas) - 1 )* 100, 1), "%")
+predictor <- tidy(fit.all$BestModel)$term
+
+odds_increase_table <- cbind(predictor, odds_increase)[-1,]
+
+# No scientific notation
+pander(odds_increase_table,
+       caption = "Increase in odds for each one unit increase in predictor")
+```
+
+The important factors are not just coefficients that are statistically significant in the model. They must also have large betas that influence the probability of somebody having heart disease. 
+
+The final model shows that the following factors are significantly different than 0, and are correlated with increased odds of being diagnosed with heart disease: `SBP`, `SEX`, `AGE`, `CHOL`, and `CIG`. 
+
+* `SEX`: Being male vs. female increases your odds of heart disease by 148%
+* `AGE`: For every year increase in age, the odds of having heart disease increase by 6.3%
+* `SBP`: For every unit increase in systolic blood pressure, the odds of having heart disease increase by 1.6%
+* `CHOL`: For every unit increase in cholestrol, the odds of having heart disease increase by 0.5%
+* `CIG`: For every weekly self-reported cigarette smoked, the odds of having heart disease increase by 1.2%
+
+**Summary**
+
+When taking into account the beta coefficients, and the potential range of values for the individuals in the dataset, it seems that `SEX`, `AGE`, and `SBP` are the most important factors in predicting heart disease. `AGE` has a large absolute unit level impact on odds, and `SEX` and `AGE` also have a large impact when taking into account that they are continuous variables and there is a wide range of values in the dataset. `CIG` and `CHOL` may also be an important factor if individuals have extreme values for these variables.
+
+Controlling for these other variables, we do not have enough evidence to reject the null hypothesis that the coefficient for `FRW` $= 0$, hence we cannot say if `FRW` is an important factor.  
+
+\hrulefill
+
 iv. What is the probability that Liz will have heart disease, according to our final model?
+
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r 2.1.1.3.4, results = T}
+
+# Predict Liz's prob of having heart disease (using probability scale of response)
+fitbest.predict <- predict(fit.all$BestModel, hd_data.new, type = "response")
+
+# Print the probability
+pander(paste0("Liz's probability of heart disease is ", (round(fitbest.predict,4) * 100), "%."))
+```
+
+\newpage
 
 ###  Classification analysis
 
@@ -241,16 +414,133 @@ iv. What is the probability that Liz will have heart disease, according to our f
 
 i. Display the ROC curve using `fit1`. Explain what ROC reports and how to use the graph. Specify the classifier such that the False Positive rate is less than .1 and the True Positive rate is as high as possible.
 
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r ROC.1, results = T, comment = "", message = F}
+
+# Create the roc curve from fit1
+fit1.roc <- roc(hd_data.f$HD, fit1$fitted, col="blue")
+
+# Plot curve with false-positive on the x-axis
+plot(1-fit1.roc$specificities, fit1.roc$sensitivities, col="blue", pch=16,
+     xlab="False Positive",
+     ylab="Sensitivity")
+
+# Find the cutoff that gives the closest FPR to 0.10
+closest <- which.min(abs(fit1.roc$specificities - (1 - 0.10)))  
+optimal_threshold <- fit1.roc$thresholds[closest]
+optimal_sensitivity <- fit1.roc$sensitivities[closest]  # Corresponding TPR
+
+# Print the optimal values
+cat("Optimal threshold:", optimal_threshold, "\n")
+cat("True Positive Rate at this threshold:", optimal_sensitivity, "\n")
+cat("False Positive Rate at this threshold:", 1 - fit1.roc$specificities[closest], "\n")
+
+```
+
+The ROC curve is a graphical representation of the true positive rate (TPR) and the false positive rate (FPR) for every possible threshold value. The ROC curve is also helpful for calculating metrics such as AUC (Area Under Curve) which can summarize the discrimination ability of the model. 
+
+The classifer where the false positive rate is less than 0.1 and the true positive rate is as high as possible is when the threshold is set at 0.298%:
+
+$$
+\widehat{H D}=1 \quad if \quad \hat{P}(H D=1 \mid S B P)> 0.298
+$$
+\hrulefill
+
 ii. Overlay two ROC curves: one from `fit1`, the other from `fit2`. Does one curve always contain the other curve? Is the AUC of one curve always larger than the AUC of the other one? Why or why not?
+
+\textcolor{red}{\textbf{Answer:}}
+
+The ROC curve from `fit1` is always contained within the ROC curve from `fit2`. This is because `fit2` has all the predictor variables in `fit1`, and so the ROC curve from `fit2` will always have a higher true positive rate and a lower false positive rate than `fit1` because of the additional incremental information that can help improve the classifier. 
+
+See the chart below.
+
+``` {r ROC.2, results = T, message = F}
+
+# Create the roc curve from fit1
+fit2.roc<- roc(hd_data.f$HD, fit2$fitted, col="red")
+
+# Plot curve with false-positive on the x-axis
+plot(1-fit1.roc$specificities, fit1.roc$sensitivities, col="blue", pch=16,
+     xlab="False Positive",
+     ylab="Sensitivity")
+points(1-fit2.roc$specificities, fit2.roc$sensitivities, col="red", pch=16)
+```
+
+\hrulefill
 
 iii.  Estimate the Positive Prediction Values and Negative Prediction Values for `fit1` and `fit2` using .5 as a threshold. Which model is more desirable if we prioritize the Positive Prediction values?
 
+\textcolor{red}{\textbf{Answer:}}
+
+`fit2` is more desirable if we prioritize the Positive Prediction values. See table below:
+
+``` {r ROC.3, results = T, message = F}
+
+# Create confusion matrix for fit1
+fit1.predictions <- ifelse(fit1$fitted > 0.5, 1, 0)
+fit1.cm <- table(fit1.predictions, hd_data.f$HD)
+
+# Create confusion matrix for fit2
+fit2.predictions <- ifelse(fit2$fitted > 0.5, 1, 0)
+fit2.cm <- table(fit2.predictions, hd_data.f$HD)
+
+# Calculate positive prediction values
+ppv.fit1 <- fit1.cm[2,2] / sum(fit1.cm[,2])
+ppv.fit2 <- fit2.cm[2,2] / sum(fit2.cm[,2])
+
+# Calculate negative prediction values
+npv.fit1 <- fit1.cm[1,1] / sum(fit1.cm[,1])
+npv.fit2 <- fit2.cm[1,1] / sum(fit2.cm[,1])
+
+# Compile positive and negative prediction values into a table
+table.pred.value <- data.frame(Model = c("fit1", "fit2"),
+                      Positive_Prediction_Value = c(ppv.fit1, ppv.fit2),
+                      Negative_Prediction_Value = c(npv.fit1, npv.fit2))
+
+# Print table
+pander(table.pred.value)
+```
+
+\hrulefill
+
 iv.  For `fit1`: overlay two curves,  but put the threshold over the probability function as the x-axis and positive prediction values and the negative prediction values as the y-axis.  Overlay the same plot for `fit2`. Which model would you choose if the set of positive and negative prediction values are the concerns? If you can find an R package to do so, you may use it directly.
-  
+
+\textcolor{red}{\textbf{Answer:}}
+
+If positive and negative prediction values are the concerns, I would choose `fit2` as it generally has higher positive prediction values (specifically for thresholds 0.1 to 0.5) and higher negative prediction values (on average) than `fit1`. 
+
+``` {r ROC.4, results = T, message = F, warning = F}
+
+# Create a sequence of thresholds
+thresholds <- seq(0, 1, by = 0.01)
+
+# Create a dataframe which has the PPV and NPV for each threshold and model fit
+ppv_npv_df <- tibble(
+  Threshold = rep(thresholds, 2),
+  PPV = c(sapply(thresholds, function(t) sum(hd_data.f$HD == 1 & fit1$fitted > t) / sum(fit1$fitted > t)),
+          sapply(thresholds, function(t) sum(hd_data.f$HD == 1 & fit2$fitted > t) / sum(fit2$fitted > t))),
+  NPV = c(sapply(thresholds, function(t) sum(hd_data.f$HD == 0 & fit1$fitted <= t) / sum(fit1$fitted <= t)),
+          sapply(thresholds, function(t) sum(hd_data.f$HD == 0 & fit2$fitted <= t) / sum(fit2$fitted <= t))),
+  Model = rep(c("fit1", "fit2"), each = length(thresholds))
+)
+
+# Assuming ppv_npv_df is your dataframe containing the metrics
+ppv_npv_df |>
+  pivot_longer(c(PPV, NPV), names_to = "Metric", values_to = "Value") %>%
+  mutate(ModelMetric = interaction(Model, Metric, sep = " - ")) %>%
+  ggplot(aes(x = Threshold, y = Value, color = Model, linetype = Metric)) +
+    geom_line() +
+    labs(y = "Prediction Value", title = "PPV and NPV by Threshold", color = "Model", linetype = "Metric") +
+    theme_minimal()
+
+```
+
+\newpage
+
 #### Cost function/ Bayes Rule
 
 Bayes rules with risk ratio $\frac{a_{10}}{a_{01}}=10$ or $\frac{a_{10}}{a_{01}}=1$. Use your final model obtained from Part 1 to build a class of linear classifiers.
-
 
 i.  Write down the linear boundary for the Bayes classifier if the risk ratio of $a_{10}/a_{01}=10$.
 
