@@ -169,11 +169,11 @@ iii. Find the MLE based on this subset using glm(). Report the estimated logit f
 
 \textcolor{red}{\textbf{Answer:}}
 
-```{r, echo=F, results=T}
+```{r, echo=F, results=T, warning = F}
 set.seed(471)
 
 fit_1 <- glm(HD ~ SBP, hd_data.f[index,], family = binomial)
-summary(fit_1)
+pander(tidy(fit_1), caption = "Estimated Logit Function of SBP based on 5 observations")
 ```
 
 Based on maximum likelihood estimation, the equation for the estimated model is as follows. 
@@ -248,7 +248,7 @@ We will pick up the variable either with highest $|z|$ value, or smallest $p$ va
 
 \textcolor{red}{\textbf{Answer:}}
 
-SEX is the most important factor, as it is has the highest Z-value and results in the lowest AIC of all the other models. A summary of the table is below: 
+SEX is the most important factor, as it is has the highest Z-value and results in the lowest AIC of all the other models. A summary of both `fit1` and `fit2` tables are below: 
 
 ```{r, results=T}
 
@@ -257,6 +257,9 @@ fit2 <- glm(HD ~ SBP + SEX, hd_data.f, family=binomial)
 
 ## How to control the summary(fit2) output to cut some junk?
 ## We could use packages: xtable or broom. 
+
+# Print the summary of the fit1 model
+pander(tidy(fit1), caption = "Summary of `fit1` model")
 
 # Print the summary of the fit2 model
 pander(tidy(fit2), caption = "Summary of `fit2` model")
@@ -544,16 +547,178 @@ Bayes rules with risk ratio $\frac{a_{10}}{a_{01}}=10$ or $\frac{a_{10}}{a_{01}}
 
 i.  Write down the linear boundary for the Bayes classifier if the risk ratio of $a_{10}/a_{01}=10$.
 
+\textcolor{red}{\textbf{Answer:}}
+
+If the risk ratio is $a_{10}/a_{01}=10$, then we use caculate the optimal rule.
+
+$$
+\begin{aligned} 
+\hat{Y}=1 \quad \text { if } \quad & \frac{P(Y=1 \mid X)}{P(Y=0 \mid X)}>\frac{a_{0,1}}{a_{1,0}} \\ 
+\Leftrightarrow & P(Y=1 \mid X)>\frac{\frac{a_{0,1}}{a_{1,0}}}{1+\frac{a_{0,1}}{a_{1,0}}} \\
+\Leftrightarrow & P(Y=1 \mid X)>\frac{\frac{1}{10}}{1+\frac{1}{10}} \\
+\Leftrightarrow & P(Y=1 \mid X)>\frac{\frac{1}{10}}{1+\frac{1}{10}} \\
+\Leftrightarrow & P(Y=1 \mid X)>\frac{1}{11}
+\end{aligned}
+$$
+
+Assuming that I am using the best fit model from Part 1, which is the model with the lowest AIC through exhaustive search, I can then establish the linear boundary below, expressed as variables of my final equation: (I've roudnded the coefficients below)
+
+$$
+\begin{aligned} 
+\operatorname{logit}>\log \left(\frac{\frac{1}{11}}{\frac{10}{11}}\right)=-2.30 \\
+-9.23 + 0.06 Age +0.91 SexMale + 0.016 Sbp + 0.004 Chol + 0.006 Frw + 0.012 Cig > -2.30
+\end{aligned}
+$$
+
+\hrulefill
+
 ii. What is your estimated weighted misclassification error for this given risk ratio?
 
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r MCE.1, results = T, message = F, warning = F, comment = " "}
+
+# Extract model with best fit from exhaustive search
+fit.best <- fit.all$BestModel
+
+# Set the threshold
+threshold <- 1/11
+
+# Calculate the predictions
+fit.best.predictions <- ifelse(fit.best$fitted > threshold, 1, 0)
+
+# Calculate the weighted misclassification error for the Bayes classifier
+WMCE.bayes <- sum(ifelse(hd_data.f$HD == 1 & fit.best.predictions == 0, 10, 0) + ifelse(hd_data.f$HD == 0 & fit.best.predictions == 1, 1, 0)) / nrow(hd_data.f)
+
+# Print the weighted misclassification error
+print(paste0("The estimated weighted misclassification error for the Bayes classifier is: ", round(WMCE.bayes, 4)))
+
+```
+
+\hrulefill
+
 iii.  How would you classify Liz under this classifier?
+
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r classify-Liz, results = T, message = F, warning = F, comment = " "}
+
+# Predict Liz's prob of having heart disease (using probability scale of response)
+fit.best.predict.Liz <- predict(fit.best, hd_data.new, type = "response")
+
+# Print the probability
+print(paste0("Liz's probability of heart disease is ", round(fit.best.predict.Liz, 4)))
+
+# Print the classifier
+print(paste0("Therefore, Liz would be classified as not having heart disease."))
+```
+
+\hrulefill
 
 iv. Bayes rule gives us the best rule if we can estimate the probability of `HD-1` accurately. In practice we use logistic regression as our working model. How well does the Bayes rule work in practice? We hope to show in this example it works pretty well.
 
 Now, draw two estimated curves where x = threshold, and y = misclassification errors, corresponding to the thresholding rule given in x-axis.
 
+\textcolor{red}{\textbf{Answer:}}
+
+``` {r WMCE.graph, results = T, message = F, warning = F, comment = " "}
+
+# Set variables
+a10 <- 10
+a01 <- 1
+
+# Set threshold increments
+thresholds <- seq(0, 1, by = 0.01)
+
+predictions <- ifelse(fit.best$fitted > threshold, 1, 0)
+
+# Calculate weighted misclassification errors for each threshold
+wmce_values <- sapply(thresholds, function(threshold) {
+  predictions <- ifelse(fit.best$fitted > threshold, 1, 0)
+  wmce_values <- sum(ifelse(hd_data.f$HD == 1 & predictions == 0, a10, 0) + ifelse(hd_data.f$HD == 0 & predictions == 1, a01, 0)) / nrow(hd_data.f)
+  return(wmce_values)
+})
+
+# Create a data frame for plotting
+error_data <- data.frame(threshold = thresholds, wmce = wmce_values)
+
+# Plot
+ggplot(error_data, aes(x = threshold, y = wmce)) +
+  geom_line() +
+  labs(title = "Misclassification Error by Different Thresholds (a10/a01 = 10)", 
+       x = "Threshold", 
+       y = "Weighted Misclassification Error") +
+  geom_vline(xintercept = 1/11, color = "blue", linetype = "dashed") +
+  geom_text(aes(x = 1/11, y = 2, label = "Bayes Classifier", hjust = -.1), color = "blue") +
+  theme_minimal()
+
+```
+
+\hrulefill
+
 v. Use weighted misclassification error, and set $a_{10}/a_{01}=10$. How well does the Bayes rule classifier perform? 
 
+\textcolor{red}{\textbf{Answer:}}
+
+The Bayes rule classifier performs vert well when the risk ratio is $a_{10}/a_{01}=10$. The weighted misclassification error is the lowest when the threshold is set at 0.1 and minimum weighted misclassification error is equal to 0.709. The Bayes classifier results in a misclassification error of 0.714, which is very close to the minimum weighted misclassification error achievable in this dataset.
+
+``` {r WMCE.1, results = T, message = F, warning = F, comment = " "}
+
+# Find the lowest misclassification error in the table
+min_wmce <- min(error_data$wmce)
+
+```
+
+\hrulefill
+
 vi. Use weighted misclassification error, and set $a_{10}/a_{01}=1$. How well does the Bayes rule classifier perform? 
+
+\textcolor{red}{\textbf{Answer:}}
+
+The Bayes rule classifier performs also performs well when the risk ratio is $a_{10}/a_{01}=1$. The Bayes classifier results in a misclassification error of 0.218, which is very close to the minimum weighted misclassification error achievable in this dataset (0.215).
+
+See the graph below. 
+
+``` {r WMCE.2, results = T, message = F, warning = F, comment = " "}
+
+# Set variables
+a10 <- 1
+a01 <- 1
+
+# Set threshold increments
+thresholds <- seq(0, 1, by = 0.01)
+
+predictions <- ifelse(fit.best$fitted > threshold, 1, 0)
+
+# Calculate weighted misclassification errors for each threshold
+wmce_values <- sapply(thresholds, function(threshold) {
+  predictions <- ifelse(fit.best$fitted > threshold, 1, 0)
+  wmce_values <- sum(ifelse(hd_data.f$HD == 1 & predictions == 0, a10, 0) + ifelse(hd_data.f$HD == 0 & predictions == 1, a01, 0)) / nrow(hd_data.f)
+  return(wmce_values)
+})
+
+# Create a data frame for plotting
+error_data <- data.frame(threshold = thresholds, wmce = wmce_values)
+
+# Plot
+ggplot(error_data, aes(x = threshold, y = wmce)) +
+  geom_line() +
+  labs(title = "Misclassification Error by Different Thresholds (a10/a01 = 10)", 
+       x = "Threshold", 
+       y = "Weighted Misclassification Error") +
+  geom_vline(xintercept = 1/2, color = "blue", linetype = "dashed") +
+  geom_text(aes(x = 1/2, y = 2, label = "Bayes Classifier", hjust = -.1), color = "blue") +
+  theme_minimal()
+
+# Find the lowest misclassification error in the table
+min_wmce <- min(error_data$wmce)
+
+# Find the bayes misclassification error at threshold = 0.5
+bayes_wmce <- error_data$wmce[51]
+
+
+```
+
+
 
 
