@@ -158,6 +158,14 @@ Variable Related to Life Success in 2006
   - training data: get a fit
   - testing data: find the best tuning parameters/best models
   - validation data: only used in your final model to report the accuracy. 
+  
+```{r}
+data = read.csv('data/IQ.full.csv')
+data$Gender = as.factor(data$Gender)
+data$logIncome = log(data$Income2005)
+data = select(data, -c(Income2005))
+Michelle = data[nrow(data),]
+```
 
 
 ## 2. Factors affect Income
@@ -167,9 +175,32 @@ We start with linear models to answer the questions below.
 i. To summarize ASVAB test scores, create PC1 and PC2 of 10 scores of ASVAB tests and label them as
 ASVAB_PC1 and ASVAB_PC2. Give a quick interpretation of each ASVAB_PC1 and ASVAB_PC2 in terms of the original 10 tests. 
 
+PC1 is roughly equivalent to the sum of all 10 scores (we can negate all of the signs because all of the loadings are negative). 
+
+```{r}
+asvab_cols = c("Coding", "Auto", "Mechanic", "Elec", "Science", "Math", "Arith", "Word", "Parag", "Numer")
+data_asvab = data %>% select(asvab_cols)
+pca = prcomp(data %>% select(asvab_cols), scale. = T, center=TRUE)
+pca$rotation
+```
+
 ii. Is there any evidence showing ASVAB test scores in terms of ASVAB_PC1 and ASVAB_PC2, might affect the Income?  Show your work here. You may control a few other variables, including gender. 
 
+There is evidence. The estimate for PC1 is significant at alpha = 0.01 as shown in the table, and the coefficient of -0.016184 indicates that as PC1 increases by 1, the logIncome falls by -0.016184. The estimate for PC2 is not significant. The estimate for Gender is also significant, indicating that being male leads to a 0.621681 increase in log income. 
+
+```{r}
+pc1_asvab = pca$rotation[, 1]
+pc2_asvab = pca$rotation[, 2]
+data$PC1_asvab = as.vector(as.matrix(data[,asvab_cols]) %*% pc1_asvab)
+data$PC2_asvab = as.vector(as.matrix(data[,asvab_cols]) %*% pc2_asvab)
+
+fit1 = lm(logIncome ~ PC1_asvab + PC2_asvab + Gender, data=data)
+summary(fit1)
+```
+
 iii. Is there any evidence to show that there is gender bias against either male or female in terms of income in the above model? 
+
+Yes there is evidence because the estimate for gender is significant and the coefficient is not 0, indicating that being male is correlated with higher incomes and that there is a gender bias against women.
 
 
 We next build a few models for the purpose of prediction using all the information available. From now on you may use the three data sets setting (training/testing/validation) when it is appropriate. 
