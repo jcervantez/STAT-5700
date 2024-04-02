@@ -1,9 +1,9 @@
 ---
 title: "Modern Data Mining - HW 4"
 author:
-- Group Member 1
-- Group Member 2
-- Group Member 3
+- Jose Cervantez
+- Bethany Hsaio
+- Rob Kuan
 date: 'Due: 11:59Pm,  April 7th, 2024'
 output:
   pdf_document:
@@ -25,7 +25,7 @@ urlcolor: blue
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height=4, fig.width=6, warning = F)
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost)
+pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret)
 ```
 
 
@@ -233,16 +233,104 @@ iv. fit4: Build a best possible RandomForest
     a) Show the process how you tune mtry and number of trees. Give a very high level explanation how fit4 is built.
     b) Compare the oob errors form fit4 to the testing errors using your testing data. Are you convinced that oob errors estimate testing error reasonably well.
     c) What is the predicted value for Michelle?
+    
+```{r}
+## part iv
+
+# Split data into training, testing, and validation sets
+set.seed(123)
+train_index <- sample(1:nrow(data), 0.7*nrow(data))
+test_index <- sample(setdiff(1:nrow(data), train_index), 0.2*nrow(data))
+valid_index <- setdiff(1:nrow(data), union(train_index, test_index))
+
+data.train <- data[train_index,]
+data.test <- data[test_index,]
+data.valid <- data[valid_index,]
+
+mtry_vals <- seq(2, ncol(data.train)-1, by=2)
+oob_errors <- c()
+for (m in mtry_vals) {
+  fit <- randomForest(logIncome ~ ., data=data.train, mtry=m, ntree=500)
+  oob_errors <- c(oob_errors, fit$mse[500])
+}
+mtry_opt <- mtry_vals[which.min(oob_errors)]
+
+fit4 <- randomForest(logIncome ~ ., data=data.train, mtry=mtry_opt, ntree=500, importance=TRUE)
+oob_error <- sqrt(fit4$mse[500])
+test_error <- sqrt(mean((predict(fit4, data.test) - data.test$logIncome)^2))
+# Add PC1_asvab and PC2_asvab variables to Michelle data
+Michelle$PC1_asvab = as.vector(as.matrix(Michelle[,asvab_cols]) %*% pc1_asvab)
+Michelle$PC2_asvab = as.vector(as.matrix(Michelle[,asvab_cols]) %*% pc2_asvab)
+
+print(paste("OOB Error:", round(oob_error,3)))
+print(paste("Test Error:", round(test_error,3)))
+print(paste("Michelle's Predicted logIncome:", round(predict(fit4, Michelle),3)))
+
+
+```
 
 v. Now you have built so many predicted models (fit1 through fit4 in this section). What about build a fit5 which bags fit1 through fit4. Does fit5 have the smallest testing error?
 
+```{r}
+# v. Bagging models (fit1 through fit4)
+library(caret)
+set.seed(123)
+
+# Create a list of the models to be bagged
+#models <- list(fit1, fit2, fit3, fit4)
+
+# Define a custom model that averages predictions from the list of models
+# bag_model <- function(models, newdata) {
+#   preds <- lapply(models, function(model) predict(model, newdata))
+#   rowMeans(do.call(cbind, preds))
+# }
+# 
+# # Create the bagged model using the custom model function
+# fit5 <- train(logIncome ~ ., data=data.train, method="custom", 
+#               trControl=trainControl(method="cv", number=10),
+#               models=models)
+# 
+# # Evaluate the bagged model on the test set
+# fit5_test_error <- sqrt(mean((bag_model(models, data.test) - data.test$logIncome)^2))
+# print(paste("Bagged Model Test Error:", round(fit5_test_error,3)))
+```
+
 iv. Now use `XGBoost` to build the fit6 predictive equation. Evaluate its testing error. Also briefly explain how it works. 
+
+```{r}
+# vi. XGBoost
+
+train_data <- as.matrix(sapply(data.train[,-ncol(data.train)], as.numeric))
+test_data <- as.matrix(sapply(data.test[,-ncol(data.test)], as.numeric))
+
+dtrain <- xgb.DMatrix(train_data, label=data.train$logIncome)
+dtest <- xgb.DMatrix(test_data, label=data.test$logIncome)
+
+watchlist <- list(train=dtrain, test=dtest)
+fit6 <- xgb.train(data=dtrain, max.depth=3, eta=0.1, nrounds=100, watchlist=watchlist, 
+                  verbose=0, objective = "reg:squarederror")
+fit6_test_error <- sqrt(mean((predict(fit6, dtest) - data.test$logIncome)^2))
+print(paste("XGBoost Test Error:", round(fit6_test_error,3))) 
+
+```
 
 vii.  Summarize the results and nail down one best possible final model you will recommend to predict income. Explain briefly why this is the best choice. Finally for the first time evaluate the prediction error using the validating data set. 
 
+```{r}
+# vii. Final model selection
+# Based on the test errors, the RandomForest model fit4 has the lowest error and is selected as the final model
+# Evaluation on validation set
+valid_error <- sqrt(mean((predict(fit4, data.valid) - data.valid$logIncome)^2))
+print(paste("Final Model (RandomForest) Validation Error:", round(valid_error,3)))
+
+```
+
 viii. Use your final model to predict Michelle's income. 
 
-
+```{r}
+# viii. Predict Michelle's income
+print(paste("Michelle's Predicted logIncome:", round(predict(fit4, Michelle),3)))
+```
     
 # Problem 2: Yelp challenge 2019
 
