@@ -373,14 +373,14 @@ iv. fit4: Build a best possible RandomForest
 mtry_vals <- seq(2, ncol(data.train)-1, by=2)
 oob_errors <- c()
 for (m in mtry_vals) {
-  fit <- randomForest(logIncome ~ ., data=data.train, mtry=m, ntree=500)
+  fit <- randomForest(y.train ~ ., data=data.train, mtry=m, ntree=500)
   oob_errors <- c(oob_errors, fit$mse[500])
 }
 mtry_opt <- mtry_vals[which.min(oob_errors)]
 
-fit4 <- randomForest(logIncome ~ ., data=data.train, mtry=mtry_opt, ntree=500, importance=TRUE)
+fit4 <- randomForest(y.train ~ ., data=data.train, mtry=mtry_opt, ntree=500, importance=TRUE)
 oob_error <- sqrt(fit4$mse[500])
-test_error <- sqrt(mean((predict(fit4, data.test) - data.test$logIncome)^2))
+test_error <- sqrt(mean((predict(fit4, data.test) - data.test$y.train)^2))
 # Add PC1_asvab and PC2_asvab variables to Michelle data
 Michelle$PC1_asvab = as.vector(as.matrix(Michelle[,asvab_cols]) %*% pc1_asvab)
 Michelle$PC2_asvab = as.vector(as.matrix(Michelle[,asvab_cols]) %*% pc2_asvab)
@@ -400,7 +400,7 @@ v. Now you have built so many predicted models (fit1 through fit4 in this sectio
 
 ```{r}
 # Create a list of the models to be bagged
-models <- list(fit1, fit2, fit4)
+models <- list(fit1, fit2, fit3, fit4)
 
 # Define a custom bagging function
 bag_predictions <- function(models, newdata) {
@@ -412,19 +412,19 @@ bag_predictions <- function(models, newdata) {
 bagged_preds <- bag_predictions(models, data.test)
 
 # Calculate the test error for the bagged model
-fit5_test_error <- sqrt(mean((bagged_preds - data.test$logIncome)^2))
+fit5_test_error <- sqrt(mean((bagged_preds - y.train)^2))
 print(paste("Bagged Model Test Error:", round(fit5_test_error,3)))
 
 # Calculate test errors for fit1, fit2, fit3, and fit4
-fit1_test_error <- sqrt(mean((predict(fit1, data.test) - data.test$logIncome)^2))
-fit2_test_error <- sqrt(mean((predict(fit2, data.test) - data.test$logIncome)^2))
-#fit3_test_error <- sqrt(mean((predict(fit3, data.test) - data.test$logIncome)^2))
-fit4_test_error <- sqrt(mean((predict(fit4, data.test) - data.test$logIncome)^2))
+fit1_test_error <- sqrt(mean((predict(fit1, data.test) - y.train)^2))
+fit2_test_error <- sqrt(mean((predict(fit2, data.test) - y.train)^2))
+fit3_test_error <- sqrt(mean((predict(fit3, data.test) - y.train)^2))
+fit4_test_error <- sqrt(mean((predict(fit4, data.test) - y.train)^2))
 
 # Compare test errors
 print(paste("fit1 Test Error:", round(fit1_test_error,3)))
 print(paste("fit2 Test Error:", round(fit2_test_error,3)))
-#print(paste("fit3 Test Error:", round(fit3_test_error,3)))
+print(paste("fit3 Test Error:", round(fit3_test_error,3)))
 print(paste("fit4 Test Error:", round(fit4_test_error,3)))
 print(paste("fit5 (Bagged) Test Error:", round(fit5_test_error,3)))
 
@@ -438,13 +438,13 @@ iv. Now use `XGBoost` to build the fit6 predictive equation. Evaluate its testin
 train_data <- as.matrix(sapply(data.train[,-ncol(data.train)], as.numeric))
 test_data <- as.matrix(sapply(data.test[,-ncol(data.test)], as.numeric))
 
-dtrain <- xgb.DMatrix(train_data, label=data.train$logIncome)
-dtest <- xgb.DMatrix(test_data, label=data.test$logIncome)
+dtrain <- xgb.DMatrix(train_data, label=y.train)
+dtest <- xgb.DMatrix(test_data, label=y.test)
 
 watchlist <- list(train=dtrain, test=dtest)
 fit6 <- xgb.train(data=dtrain, max.depth=3, eta=0.1, nrounds=100, watchlist=watchlist, 
                   verbose=0, objective = "reg:squarederror")
-fit6_test_error <- sqrt(mean((predict(fit6, dtest) - data.test$logIncome)^2))
+fit6_test_error <- sqrt(mean((predict(fit6, dtest) - y.test)^2))
 print(paste("XGBoost Test Error:", round(fit6_test_error,3))) 
 
 ```
@@ -454,14 +454,20 @@ vii.  Summarize the results and nail down one best possible final model you will
 ```{r}
 # vii. Final model selection
 # Based on the test errors, the RandomForest model fit4 has the lowest error and is selected as the final model
+
+# Convert data.valid to matrix
+valid_data <- as.matrix(sapply(data.valid[,-ncol(data.valid)], as.numeric))
+dvalid <- xgb.DMatrix(valid_data, label=y.valid)
+
 # Evaluation on validation set
-valid_error <- sqrt(mean((predict(fit4, data.valid) - data.valid$logIncome)^2))
-print(paste("Final Model (RandomForest) Validation Error:", round(valid_error,3)))
+valid_error <- sqrt(mean((predict(fit6, dvalid) - y.valid)^2))
+print(paste("Final Model (XGBoost) Validation Error:", round(valid_error,3)))
+
 
 ```
 
 \begin{itemize}
-  \item The best possible final model to predict income is the RandomForest model fit4. This model has the lowest test error among all the models built. 
+  \item The best possible final model to predict income is the XGBoost model fit6. This model has the lowest test error among all the models built. 
 \end{itemize}
 
 viii. Use your final model to predict Michelle's income. 
