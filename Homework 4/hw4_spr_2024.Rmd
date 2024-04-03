@@ -374,30 +374,29 @@ print(paste("Michelle's Predicted logIncome:", round(predict(fit4, Michelle),3))
 
 ```
 
+\begin{itemize}
+  \item RandomForest combines multiple decision trees to improve prediction accuracy and reduce overfitting. The algorithm constructs a large number of decision trees (500 in this case) on bootstrap samples of the training data. At each split in a tree, a random subset of predictors (determined by mtry) is considered for the best split. This process introduces randomness and diversity among the trees, which helps in reducing the correlation between them and improving the overall performance of the ensemble.
+\end{itemize}
+
 v. Now you have built so many predicted models (fit1 through fit4 in this section). What about build a fit5 which bags fit1 through fit4. Does fit5 have the smallest testing error?
 
 ```{r}
-# v. Bagging models (fit1 through fit4)
-library(caret)
-set.seed(123)
-
-# Create a list of the models to be bagged
-#models <- list(fit1, fit2, fit3, fit4)
+models <- list(fit1, fit2, fit4)
 
 # Define a custom model that averages predictions from the list of models
-# bag_model <- function(models, newdata) {
-#   preds <- lapply(models, function(model) predict(model, newdata))
-#   rowMeans(do.call(cbind, preds))
-# }
-# 
-# # Create the bagged model using the custom model function
-# fit5 <- train(logIncome ~ ., data=data.train, method="custom", 
-#               trControl=trainControl(method="cv", number=10),
-#               models=models)
-# 
-# # Evaluate the bagged model on the test set
-# fit5_test_error <- sqrt(mean((bag_model(models, data.test) - data.test$logIncome)^2))
-# print(paste("Bagged Model Test Error:", round(fit5_test_error,3)))
+bag_model <- function(models, newdata) {
+  preds <- lapply(models, function(model) predict(model, newdata))
+  rowMeans(do.call(cbind, preds))
+}
+
+# Create the bagged model using the custom model function
+fit5 <- train(logIncome ~ ., data=data.train, method="custom",
+              trControl=trainControl(method="cv", number=10),
+              models=models)
+
+# Evaluate the bagged model on the test set
+fit5_test_error <- sqrt(mean((bag_model(models, data.test) - data.test$logIncome)^2))
+print(paste("Bagged Model Test Error:", round(fit5_test_error,3)))
 ```
 
 iv. Now use `XGBoost` to build the fit6 predictive equation. Evaluate its testing error. Also briefly explain how it works. 
