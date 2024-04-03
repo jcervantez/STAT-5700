@@ -25,7 +25,7 @@ urlcolor: blue
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height=4, fig.width=6, warning = F)
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret, data.table)
+pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret, data.table, tm)
 ```
 
 
@@ -381,22 +381,35 @@ print(paste("Michelle's Predicted logIncome:", round(predict(fit4, Michelle),3))
 v. Now you have built so many predicted models (fit1 through fit4 in this section). What about build a fit5 which bags fit1 through fit4. Does fit5 have the smallest testing error?
 
 ```{r}
+# Create a list of the models to be bagged
 models <- list(fit1, fit2, fit4)
 
-# Define a custom model that averages predictions from the list of models
-bag_model <- function(models, newdata) {
+# Define a custom bagging function
+bag_predictions <- function(models, newdata) {
   preds <- lapply(models, function(model) predict(model, newdata))
   rowMeans(do.call(cbind, preds))
 }
 
-# Create the bagged model using the custom model function
-fit5 <- train(logIncome ~ ., data=data.train, method="custom",
-              trControl=trainControl(method="cv", number=10),
-              models=models)
+# Make predictions on the test set using the bagged models
+bagged_preds <- bag_predictions(models, data.test)
 
-# Evaluate the bagged model on the test set
-fit5_test_error <- sqrt(mean((bag_model(models, data.test) - data.test$logIncome)^2))
+# Calculate the test error for the bagged model
+fit5_test_error <- sqrt(mean((bagged_preds - data.test$logIncome)^2))
 print(paste("Bagged Model Test Error:", round(fit5_test_error,3)))
+
+# Calculate test errors for fit1, fit2, fit3, and fit4
+fit1_test_error <- sqrt(mean((predict(fit1, data.test) - data.test$logIncome)^2))
+fit2_test_error <- sqrt(mean((predict(fit2, data.test) - data.test$logIncome)^2))
+#fit3_test_error <- sqrt(mean((predict(fit3, data.test) - data.test$logIncome)^2))
+fit4_test_error <- sqrt(mean((predict(fit4, data.test) - data.test$logIncome)^2))
+
+# Compare test errors
+print(paste("fit1 Test Error:", round(fit1_test_error,3)))
+print(paste("fit2 Test Error:", round(fit2_test_error,3)))
+#print(paste("fit3 Test Error:", round(fit3_test_error,3)))
+print(paste("fit4 Test Error:", round(fit4_test_error,3)))
+print(paste("fit5 (Bagged) Test Error:", round(fit5_test_error,3)))
+
 ```
 
 iv. Now use `XGBoost` to build the fit6 predictive equation. Evaluate its testing error. Also briefly explain how it works. 
@@ -429,10 +442,14 @@ print(paste("Final Model (RandomForest) Validation Error:", round(valid_error,3)
 
 ```
 
+\begin{itemize}
+  \item The best possible final model to predict income is the RandomForest model fit4. This model has the lowest test error among all the models built. 
+\end{itemize}
+
 viii. Use your final model to predict Michelle's income. 
 
 ```{r}
-# viii. Predict Michelle's income
+# viii. Predict Michelle's income using fit4
 print(paste("Michelle's Predicted logIncome:", round(predict(fit4, Michelle),3)))
 ```
     
@@ -539,18 +556,75 @@ str(yelp_data)
 
 a) Which time period were the reviews collected in this data?
 
+```{r}
+range(as.Date(yelp_data$date))
+
+```
+\begin{itemize}
+  \item The reviews were collected between 2004-10-12 and 2018-11-14.
+\end{itemize}
+
 b) Are ratings (with 5 levels) related to month of the year or days of the week? Only address this through EDA please. 
 
+```{r}
+yelp_data$month <- format(as.Date(yelp_data$date), "%m")
+yelp_data$day_of_week <- format(as.Date(yelp_data$date), "%A")
+# Ratings by month
+table(yelp_data$month, yelp_data$stars)
+# Ratings by weekday
+table(yelp_data$day_of_week, yelp_data$stars)
+
+pie(table(yelp_data$month))
+pie(table(yelp_data$day_of_week))
+pie(table(yelp_data$stars))
+```
+
+\begin{itemize}
+  \item From the tables and pie charts, there doesn't seem to be a discernible pattern or correlation between ratings and months or weeks.
+\end{itemize}
 
 ii. Document term matrix (dtm)
  
  Extract document term matrix for texts to keep words appearing at least .5% of the time among all 20000 documents. Go through the similar process of cleansing as we did in the lecture. 
+ 
+```{r}
+pacman::p_load(tm)
+mycorpus1 <- VCorpus(VectorSource(yelp_data$text))
+mycorpus_clean <- tm_map(mycorpus1, content_transformer(tolower))
+mycorpus_clean <- tm_map(mycorpus_clean, removeWords, stopwords("english"))
+mycorpus_clean <- tm_map(mycorpus_clean, removePunctuation)
+mycorpus_clean <- tm_map(mycorpus_clean, removeNumbers)
+mycorpus_clean <- tm_map(mycorpus_clean, stemDocument, lazy = TRUE)
+mycorpus_clean <- tm_map(mycorpus1, removeWords, stopwords("english"))
+dtm <- DocumentTermMatrix(mycorpus_clean)
+dtm <- removeSparseTerms(dtm, 0.995)
+ 
+```
 
 a) Briefly explain what does this matrix record? What is the cell number at row 100 and column 405? What does it represent?
 
+\begin{itemize}
+  \item The document term matrix records the frequency of each term (word) in each document (review). For example, the cell number at row 100 and column 405 represents the frequency of the 405th term in the 100th document.
+\end{itemize}
+
 b) What is the sparsity of the dtm obtained here? What does that mean?
 
+```{r}
+sparsity <- sum(dtm == 0) / prod(dim(dtm))
+print(paste("Sparsity of the dtm:", round(sparsity, 3)))
+```
+\begin{itemize}
+  \item The sparsity of the dtm is 0.986, which means that 98.6\% of the cells in the matrix are zero. This indicates that most documents contain only a small subset of the total terms.
+\end{itemize}
+
+
 iii. Set the stars as a two category response variable called rating to be “1” = 5,4 and “0”= 1,2,3. Combine the variable rating with the dtm as a data frame called data2. 
+
+```{r}
+yelp_data$rating <- ifelse(yelp_data$stars >= 4, "1", "0")
+data2 <- cbind(as.data.frame(as.matrix(dtm)), rating = yelp_data$rating)
+
+```
 
 ## Analysis
 
