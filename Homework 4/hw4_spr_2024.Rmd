@@ -25,7 +25,7 @@ urlcolor: blue
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height=4, fig.width=6, warning = F)
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret)
+pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret, data.table)
 ```
 
 
@@ -207,36 +207,8 @@ We next build a few models for the purpose of prediction using all the informati
 
 ## 3. Trees
 
-i. fit1: tree(Income ~ Educ + Gender, data.train) with default set up 
-
-    a) Display the tree
-    b) How many end nodes? Briefly explain how the estimation is obtained in each end nodes and deescribe the prediction equation
-    c) Does it show interaction effect of Gender and Educ on Income?
-    d) Predict Michelle's income
-
-ii. fit2: fit2 <- rpart(Income2005 ~., data.train, minsplit=20, cp=.009)
-
-    a) Display the tree using plot(as.party(fit2), main="Final Tree with Rpart") 
-    b) A brief summary of the fit2
-    c) Compare testing errors between fit1 and fit2. Is the training error from fit2 always less than that from fit1? Is the testing error from fit2 always smaller than that from fit1? 
-    d) You may prune the fit2 to get a tree with small testing error. 
-    
-iii. fit3: bag two trees
-
-    a) Take 2 bootstrap training samples and build two trees using the 
-    rpart(Income2005 ~., data.train.b, minsplit=20, cp=.009). Display both trees.
-    b) Explain how to get fitted values for Michelle by bagging the two trees obtained above. Do not use the predict(). 
-    c) What is the testing error for the bagged tree. Is it guaranteed that the testing error by bagging the two tree always smaller that either single tree? 
-    
-iv. fit4: Build a best possible RandomForest
-
-    a) Show the process how you tune mtry and number of trees. Give a very high level explanation how fit4 is built.
-    b) Compare the oob errors form fit4 to the testing errors using your testing data. Are you convinced that oob errors estimate testing error reasonably well.
-    c) What is the predicted value for Michelle?
-    
 ```{r}
-## part iv
-
+# split data into train/val/test for trees
 # Split data into training, testing, and validation sets
 set.seed(123)
 train_index <- sample(1:nrow(data), 0.7*nrow(data))
@@ -246,6 +218,139 @@ valid_index <- setdiff(1:nrow(data), union(train_index, test_index))
 data.train <- data[train_index,]
 data.test <- data[test_index,]
 data.valid <- data[valid_index,]
+```
+
+i. fit1: tree(Income ~ Educ + Gender, data.train) with default set up 
+
+    a) Display the tree
+    b) How many end nodes? Briefly explain how the estimation is obtained in each end nodes and deescribe the prediction equation
+    c) Does it show interaction effect of Gender and Educ on Income?
+    d) Predict Michelle's income
+
+\textbf{Part a:}   
+```{r}
+# part i
+fit1 = tree(logIncome ~ Educ + Gender, data.train)
+plot(fit1)
+text(fit1, pretty=TRUE)
+```
+
+\textbf{Part b:} There are 4 end nodes. Each end node/leaf represents the prediction we obtain when we follow the path from the root to the leaf (and since there is only one unique path between any 2 nodes in a tree, there is only 1 way to reach each leaf). We describe the end nodes from left to right. The leftmost prediction means that for a female with fewer than 15.5 years of education, we would predict her log income to be 9.933. Next, for a female with at least 15.5 years of education, we would predict her log income to be 10.470. Next, for a male with fewer than 15.5 years of education, we would predict his log income to be 10.560. Finally, for a male with at least 15.5 years of education, we would predict his log income to be 11.180.
+
+```{r}
+data.table(fit1$frame)
+```
+
+\textbf{Part c}: Yes, we do see an interaction effect. Our predictions of log income depending on the combination of Gender and Education that we have.
+
+\textbf{Part d:} We predict Michelle's log income to be 9.932855. This translates to $20,596.06.
+
+```{r}
+print("Log income prediction")
+predict(fit1, Michelle)
+print("Income prediction")
+exp(predict(fit1, Michelle))
+```
+
+ii. fit2: fit2 <- rpart(Income2005 ~., data.train, minsplit=20, cp=.009)
+
+    a) Display the tree using plot(as.party(fit2), main="Final Tree with Rpart") 
+    b) A brief summary of the fit2
+    c) Compare testing errors between fit1 and fit2. Is the training error from fit2 always less than that from fit1? Is the testing error from fit2 always smaller than that from fit1? 
+    d) You may prune the fit2 to get a tree with small testing error. 
+    
+\textbf{Part a:}
+
+```{r}
+fit2 = rpart(logIncome ~., data.train, minsplit=20, cp=.009)
+plot(as.party(fit2), main="Final Tree with Rpart") 
+```
+    
+\textbf{Part b:} This tree has 9 terminal nodes. Gender is the most important variable, while FatherEd is the least important variable. In this tree, we first split on Gender. For females, we then split by scores on Math, while for males, we then split by years of Education. For males with less than 15.5 years of education, we then split on Arithmetic scores.
+
+```{r}
+summary(fit2)
+```
+
+\textbf{Part c:}
+
+fit1 has a test MSE of 0.7600874, while fit2 has a test MSE of 0.7573498. For this specific seed, the training and test errors are lower for fit2 than fit1. However, depending on the seed and how the data is split, it is possible that fit1 may produce a tree with lower training and/or test errors.
+
+```{r}
+print("Fit 1 test error: ")
+test.error.fit1 <- mean((predict(fit1, data.test) - data.test$logIncome)^2)
+test.error.fit1
+
+print("Fit 2 test error: ")
+test.error.fit2 <- mean((predict(fit2, data.test) - data.test$logIncome)^2)
+test.error.fit2
+
+print("Fit 1 train error: ")
+train.error.fit1 <- mean((predict(fit1, data.train) - data.train$logIncome)^2)
+train.error.fit1
+
+print("Fit 2 train error: ")
+train.error.fit2 <- mean((predict(fit2, data.train) - data.train$logIncome)^2)
+train.error.fit2
+```
+\textbf{Part d:} By pruning fit2, we obtain a lower testing MSE of 0.7573498.
+
+```{r}
+fit2.p = prune(fit2, cp=0.01)
+summary(fit2.p)
+plot(as.party(fit2.p), main="Pruned Tree with Rpart") 
+print("Fit 2 pruned test error: ")
+test.error.fit2p <- mean((predict(fit2.p, data.test) - data.test$logIncome)^2)
+print(test.error.fit2p)
+```
+
+iii. fit3: bag two trees
+
+    a) Take 2 bootstrap training samples and build two trees using the 
+    rpart(Income2005 ~., data.train.b, minsplit=20, cp=.009). Display both trees.
+    b) Explain how to get fitted values for Michelle by bagging the two trees obtained above. Do not use the predict(). 
+    c) What is the testing error for the bagged tree. Is it guaranteed that the testing error by bagging the two tree always smaller that either single tree? 
+    
+\textbf{Part a:}
+
+```{r}
+n = nrow(data.train)
+
+index1 <- sample(n, n, replace = TRUE)
+boot.data1 <- data.train[index1, ]
+boot.1.tree <- rpart(logIncome ~., boot.data1, minsplit=20, cp=.009)
+
+plot(boot.1.tree)
+title(main = "First bootstrap tree")
+text(boot.1.tree, pretty=TRUE)
+
+index2 <- sample(n, n, replace = TRUE)
+boot.data2 <- data.train[index2, ]
+boot.2.tree <- rpart(logIncome ~., boot.data2, minsplit=20, cp=.009)
+
+plot(boot.2.tree)
+title(main = "Second bootstrap tree")
+text(boot.2.tree, pretty=TRUE)
+```
+    
+\textbf{Part b:} To get fitted values for Michelle, we would take the average of the predictions from boot.1.tree and boot.2.tree. 
+
+\textbf{Part c:} The testing MSE of the bagged tree is 0.7862542. It is not guaranteed that the bagged tree's testing MSE is always lower than that of a single tree. Since the bagged tree outputs the average of the trees it contains, it's possible that if one of the single trees is optimal that the averaging will move the output results away from the optimal results.
+
+```{r}
+bag.predict <- (predict(boot.1.tree, data.test) + predict(boot.2.tree, data.test))/2 #bagging
+mean((bag.predict - data.test$logIncome)^2)
+```
+
+
+iv. fit4: Build a best possible RandomForest
+
+    a) Show the process how you tune mtry and number of trees. Give a very high level explanation how fit4 is built.
+    b) Compare the oob errors form fit4 to the testing errors using your testing data. Are you convinced that oob errors estimate testing error reasonably well.
+    c) What is the predicted value for Michelle?
+    
+```{r}
+## part iv
 
 mtry_vals <- seq(2, ncol(data.train)-1, by=2)
 oob_errors <- c()
