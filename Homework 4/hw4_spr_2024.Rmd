@@ -657,20 +657,23 @@ Get a training data with 13000 reviews and the 5000 reserved as the testing data
 
 i. Use the training data to get Lasso fit. Choose lambda.1se. Keep the result here.
 
-```{r}
+```{r messages = FALSE, warning = FALSE}
 
 # Divide the dataset into training/testing data (18,000 reviews) and validation data (2,000 reviews)
+set.seed(99)
 data_train <- data2[sample(nrow(data2), 13000, replace = FALSE), ]
 data_not_train <- anti_join(data2, data_train)
+
+set.seed(999)
 data_test <- data_not_train[sample(nrow(data_not_train), 5000, replace = FALSE), ]
 data_validate <- anti_join(data_not_train, data_test)
 
 # Prepare Y and X matrix
-Y <- as.matrix(data_train[,1]) # Extract Y
+Y <- as.matrix(as.numeric(data_train[,1])) # Extract Y
 X <- as.matrix(data_train[,-1]) # Create the design matrix
 
 # Set the seed
-set.seed(99)
+set.seed(100)
 
 # Fit the Lasso model
 fit_lasso <- cv.glmnet(X, Y, alpha = 1, nfolds = 15, intercept = T)
@@ -689,9 +692,6 @@ ii. Feed the output from Lasso above, get a logistic regression.
 ```{r}
 # Prepare the dataset for a relaxed lasso with logistic regression
 data_subset <- data2[,c("rating", var_1se)] 
-
-# Rename "..." as "ellipsis" to avoid errors
-names(data_subset)[names(data_subset) == "..."] <- "ellipsis"
 
 # Run a logistic regression
 fit_logit <- glm(rating ~ ., data = data_subset, family = binomial)
@@ -757,11 +757,12 @@ color_scheme <- brewer.pal(6,"Dark2")  # set up a pretty color scheme
 wordcloud(neg_words[2:100], neg_coef_invert[2:100], colors = color_scheme, ordered.colors = F)
 
 ```
-From the word cloud and the leading words with negative coefficients, we can see that words **also** tend to fall into two categories. The first are adjectives which describe how terrible the experience is ("worst", "horrible", "rude"). The second are words that describe the quality of the service ("ignore", "unprofessional"). This suggests that both the quality of the service and the experience are important factors in determining a negative review.
+
+From the word cloud and the leading words with negative coefficients, we can see that negative words **also** tend to fall into two categories. The first are adjectives which describe how terrible the experience is ("worst", "horrible", "rude"). The second are words that describe the quality of the service ("ignore", "unprofessional"). This suggests that both the quality of the service and the experience are important factors in determining a negative review.
 
 d) Summarize the findings. 
 
-Both positive and negative word clouds show that the **quality of the service** and the **overall experience** are important factors in determining a review. Positive reviews tend to use words that describe how incredible the experience is and how professional the service is. Negative reviews tend to use words that describe how terrible the experience is and how unprofessional the service is. The data supports the hypothesis that each of these two factors are important. 
+Both positive and negative word clouds show that the **quality of the service** and the **overall experience** are important factors in determining a review. Positive reviews tend to use words that describe how incredible the overall experience is and how professional the service is. Negative reviews tend to use words that describe how terrible the overall experience is and how unprofessional the service is. The data supports the hypothesis that each of these two factors are important. 
 
 iii. Using majority votes find the testing errors
 	i) From Lasso fit in 3)
@@ -776,7 +777,7 @@ data_test_x <- as.matrix(data_test[,-1])
 data_test_y <- as.matrix(data_test[,1])
 
 # Predict the probabilities for the test data
-prob_lasso <- predict(fit_lasso, data_test_x, type = "response")
+prob_lasso <- predict(fit_lasso, data_test_x, s = "lambda.1se", type = "response")
 prob_logit <- predict(fit_logit, data_test[,-1], type = "response")
 
 # Convert probabilities to predictions based on majority vote
@@ -805,11 +806,39 @@ ii. Now train the data using the training data set by RF. Get the testing error 
 
 ```{r}
 
-# Output training dataset for Random Forest
-write.csv(data_train, "data/data_train.csv", row.names = F)
+# Write .csv
+write.csv(data_train, "data_train.csv", row.names = F)
+write.csv(data_test, "data_test.csv", row.names = F)
 
+data_train_rf <- read.csv("data_train.csv")
+data_test_rf <- read.csv("data_test.csv")
+
+# Set seed
+set.seed(80)
+
+# Fit random forest model
+fit_rf <- randomForest(rating~., data_train_rf, mtry=3, ntree = 500)
+
+# Plot the error rate
+plot(fit_rf)
+
+# Predict the probabilities for the test data
+prob_rf <- predict(fit_rf, data_test_rf, type="response") # majority vote
+pred_rf <- ifelse(prob_rf > 0.5, 1, 0)
+
+test_error_rf <- mean(data_test_rf[,1] != pred_rf) 
+
+# Add the training error to the table
+testing_errors <- rbind(testing_errors, c("Random Forest", test_error_rf))
+
+# Print table with Random Forest testing error added
+pander(testing_errors, caption = "Testing errors for Lasso, Logistic Regression, and Random Forest models")
 
 ```
+
+The testing error of the random forest is in the table above. My computer did not have enough computational power to calculate a random forest with a large number of trees. 
+
+If I had access to more computational power, I would have used cross-validation to tune the `mtry` and `ntree` parameters, using the Out Of Bag errors to estimate the testing error of the random forest parameters.
 
 ## 4. Boosting 
 
@@ -842,7 +871,7 @@ params_custom = list(booster = 'gbtree', # select gradient tree boosting
 
 # make function print model's evaluation
 xgb.fit = xgboost(data=dtrain, params = params_custom, 
-                  nrounds = 500,    # max number of iterations, i.e. trees grown
+                  nrounds = 200,    # max number of iterations, i.e. trees grown
                   verbose = 0  # no messages during the training period
                   )
 
@@ -895,8 +924,21 @@ pred_lasso_xboost <- ifelse(prob_lasso_xboost > 0.5, 1, 0)
 test_error_lasso_xboost <- mean(pred_lasso_xboost != data_test_y)
 pander(test_error_lasso_xboost)
 
+# Combine the predictions of the models Lasso and Random Forest and Logit
+prob_lasso_rf_logit <- (prob_lasso + prob_rf + prob_logit) / 3
+pred_lasso_rf_logit <- ifelse(prob_lasso_rf_logit > 0.5, 1, 0)
 
+# Calculate the testing error
+test_error_lasso_rf_logit <- mean(pred_lasso_rf_logit != data_test_y)
+pander(test_error_lasso_rf_logit)
 
+# Combine the predicions of all models
+prob_all <- (prob_lasso + prob_logit + prob_rf + prob_xboost) / 4
+pred_all <- ifelse(prob_all > 0.5, 1, 0)
+
+# Calculate the testing error
+test_error_all <- mean(pred_all != data_test_y)
+pander(test_error_all)
 ```
 
 
@@ -904,11 +946,24 @@ pander(test_error_lasso_xboost)
 
 Which classifier(s) seem to produce the least testing error? Are you surprised? Report the final model and accompany the validation error. Once again this is THE only time you use the validation data set.  For the purpose of prediction, comment on how would you predict a rating if you are given a review (not a tm output) using our final model? 
 
-The classifier that seems to produce the least testing error is the relaxed LASSO using a logistic regression. 
+The classifier that seems to produce the least testing error is the relaxed LASSO using a logistic regression. I am a bit surprised, because I thought the XGBoost and the Random Forest classifers would perform better. However, this might be because the parameters were not tuned sufficiently, as I did not have enough computational power to run the cross-validation with a large number of trees. 
 
+```{r}
 
+# Calculate the validation error for the relaxed LASSO using a logistic regression
+prob_logit_validation <- predict(fit_logit, data_validate, type = "response")
 
+# Convert probabilities to predictions based on majority vote
+pred_logit_validation <- ifelse(prob_logit_validation > 0.5, 1, 0)
 
+# Calculate the validation error
+validation_error_logit <- mean(pred_logit_validation != data_validate[,1])
+
+# Print the validation error
+pander(validation_error_logit)
+```
+
+The final model is the relaxed LASSO using a logistic regression. The validation error is 0.1113, which is basically equivalent to the testing error of 0.1136. This is pretty remarkable! 
 
 
 
