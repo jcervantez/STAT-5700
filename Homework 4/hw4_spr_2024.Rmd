@@ -25,7 +25,7 @@ urlcolor: blue
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.height=4, fig.width=6, warning = F)
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret, data.table, tm)
+pacman::p_load(randomForest, tree, ISLR, rpart, rattle, pROC, partykit, ggplot2, glmnet, leaps, dplyr, keras, neuralnet, imager, ranger, xgboost, caret, data.table, tm, pander, RColorBrewer, wordcloud)
 ```
 
 
@@ -619,7 +619,7 @@ mycorpus_clean <- tm_map(mycorpus_clean, removeWords, stopwords("english"))
 mycorpus_clean <- tm_map(mycorpus_clean, removePunctuation)
 mycorpus_clean <- tm_map(mycorpus_clean, removeNumbers)
 mycorpus_clean <- tm_map(mycorpus_clean, stemDocument, lazy = TRUE)
-mycorpus_clean <- tm_map(mycorpus1, removeWords, stopwords("english"))
+mycorpus_clean <- tm_map(mycorpus_clean, removeWords, stopwords("english"))
 dtm <- DocumentTermMatrix(mycorpus_clean)
 dtm <- removeSparseTerms(dtm, 0.995)
  
@@ -638,16 +638,15 @@ sparsity <- sum(dtm == 0) / prod(dim(dtm))
 print(paste("Sparsity of the dtm:", round(sparsity, 3)))
 ```
 \begin{itemize}
-  \item The sparsity of the dtm is 0.986, which means that 98.6\% of the cells in the matrix are zero. This indicates that most documents contain only a small subset of the total terms.
+  \item The sparsity of the dtm is 0.973, which means that 97.3\% of the cells in the matrix are zero. This indicates that most documents contain only a small subset of the total terms.
 \end{itemize}
 
 
 iii. Set the stars as a two category response variable called rating to be “1” = 5,4 and “0”= 1,2,3. Combine the variable rating with the dtm as a data frame called data2. 
 
 ```{r}
-yelp_data$rating <- ifelse(yelp_data$stars >= 4, "1", "0")
-data2 <- cbind(as.data.frame(as.matrix(dtm)), rating = yelp_data$rating)
-
+yelp_data$rating <- ifelse(yelp_data$stars >= 4, 1, 0)
+data2 <- cbind(rating = yelp_data$rating, as.data.frame(as.matrix(dtm)))
 ```
 
 ## Analysis
@@ -658,20 +657,143 @@ Get a training data with 13000 reviews and the 5000 reserved as the testing data
 
 i. Use the training data to get Lasso fit. Choose lambda.1se. Keep the result here.
 
+```{r}
+
+# Divide the dataset into training/testing data (18,000 reviews) and validation data (2,000 reviews)
+data_train <- data2[1:13000,]
+data_test <- data2[13001:18000,]
+data_validate <- data2[18001:19999,]
+
+# Prepare Y and X matrix
+Y <- as.matrix(data_train[,1]) # Extract Y
+X <- as.matrix(data_train[,-1]) # Create the design matrix
+
+# Set the seed
+set.seed(99)
+
+# Fit the Lasso model
+fit_lasso <- cv.glmnet(X, Y, alpha = 1, nfolds = 15, intercept = T)
+
+# Plot the lasso fit
+plot(fit_lasso)
+
+# Get coefficients for lambda.1se
+coef_1se <- coef(fit_lasso, s="lambda.1se")  
+coef_1se <- coef_1se[which(coef_1se !=0),] 
+var_1se <- rownames(as.matrix(coef_1se))[-1] # output the names  dim(as.matrix(coef.min))
+```
+
 ii. Feed the output from Lasso above, get a logistic regression. 
-	
+
+```{r}
+# Prepare the dataset for a relaxed lasso with logistic regression
+data_subset <- data2[,c("rating", var_1se)] 
+
+# Rename "..." as "ellipsis" to avoid errors
+names(data_subset)[names(data_subset) == "..."] <- "ellipsis"
+
+# Run a logistic regression
+fit_logit <- glm(rating ~ ., data = data_subset, family = binomial)
+```
+
 a) Pull out all the positive coefficients and the corresponding words. Rank the coefficients in a decreasing order. Report the leading 2 words and the coefficients. Describe briefly the interpretation for those two coefficients. 
+
+```{r}
+
+# Extract positive coefficients
+fit_logit.coef <- coef(fit_logit)
+fit_logit.coef <- fit_logit.coef[-1] # Remove the intercept
+pos_coef <- fit_logit.coef[fit_logit.coef > 0]
+
+# Rank the coefficients in decreasing order
+pos_coef <- pos_coef[order(pos_coef, decreasing = T)]
+
+# Get the leading 2 words and coefficients
+top_2_pos_coef <- pos_coef[1:2]
+
+# Print the leading 2 words and coefficients
+pander(top_2_pos_coef, caption = "Leading 2 words with positive coefficients from logistic regression")
+
+```
 
 b) Make a word cloud with the top 100 positive words according to their coefficients. Interpret the cloud briefly.
 
+```{r}
+# Extract the top 100 positive words
+pos_words <- names(pos_coef)
+
+# Create a word cloud
+color_scheme <- brewer.pal(8,"Dark2")  # set up a pretty color scheme
+wordcloud(pos_words[1:100], pos_coef[1:100], colors = color_scheme, ordered.colors = F)
+```
+
+From the word cloud and the leading 2 words with positive coefficients, we can see that words tend to fall into two categories. The first are adjectives which describe how incredible the experience is ("phenomenal", "amazing", "awesome"). The second are words that describe the quality of the service ("professional", "thorough"). This suggests that both the quality of the service and the experience are important factors in determining a positive review.
+
 c) Repeat i) and ii) for the bag of negative words.
 
+```{r}
+
+# Extract negative coefficients
+neg_coef <- fit_logit.coef[fit_logit.coef < 0]
+
+# Rank the coefficients in increasing order
+neg_coef <- neg_coef[order(neg_coef, decreasing = F)]
+
+# Get the leading 2 words and coefficients
+top_2_neg_coef <- neg_coef[1:2]
+
+# Print the leading 2 words and coefficients
+pander(top_2_neg_coef, caption = "Leading 2 words with positive coefficients from logistic regression")
+
+# Extract the top 100 positive words
+neg_words <- names(neg_coef)
+
+# Invert coefficients for weights
+neg_coef_invert <- round(neg_coef * -1,4)
+
+# Create a word cloud
+color_scheme <- brewer.pal(6,"Dark2")  # set up a pretty color scheme
+wordcloud(neg_words[1:100], neg_coef_invert[1:100], colors = color_scheme, ordered.colors = F)
+
+```
+From the word cloud and the leading words with negative coefficients, we can see that words **also** tend to fall into two categories. The first are adjectives which describe how terrible the experience is ("worst", "horrible", "rude"). The second are words that describe the quality of the service ("ignore", "unprofessional"). This suggests that both the quality of the service and the experience are important factors in determining a negative review.
+
 d) Summarize the findings. 
+
+Both positive and negative word clouds show that the **quality of the service** and the **overall experience** are important factors in determining a review. Positive reviews tend to use words that describe how incredible the experience is and how professional the service is. Negative reviews tend to use words that describe how terrible the experience is and how unprofessional the service is. The data supports the hypothesis that each of these two factors are important. 
 
 iii. Using majority votes find the testing errors
 	i) From Lasso fit in 3)
 	ii) From logistic regression in 4)
 	iii) Which one is smaller?
+
+
+```{r}
+
+# Prepare the test data
+data_test_x <- as.matrix(data_test[,-1])
+data_test_y <- as.matrix(data_test[,1])
+
+# Predict the probabilities for the test data
+prob_lasso <- predict(fit_lasso, data_test_x, type = "response")
+prob_logit <- predict(fit_logit, data_test_x, type = "response")
+
+# Convert probabilities to predictions based on majority vote
+pred_lasso <- ifelse(prob_lasso > 0.5, 1, 0)
+
+pred_logit <- ifelse(prob_logit > 0.5, 1, 0)
+
+# Calculate the testing errors
+test_error_lasso <- mean(pred_lasso != data_test_y)
+test_error_logit <- mean(pred_logit != data_test_y)
+
+# Create table for testing errors
+testing_errors <- data.frame(Model = c("Lasso", "Logistic Regression"), Testing_Error = c(test_error_lasso, test_error_logit))
+
+pander(testing_errors, caption = "Testing errors for Lasso and Logistic Regression models")
+```
+
+See the table above for the testing error for lasso and regression. The testing error for the logistic regression (using a Relaxed Lasso) is smaller than the testing error for the Lasso.
 
 ## 3. Random Forest  
 
@@ -682,6 +804,9 @@ ii. Now train the data using the training data set by RF. Get the testing error 
 ## 4. Boosting 
 
 Now use `XGBoost` to build the fourth predictive equation. Evaluate its testing error. 
+
+
+
 
 ## 5. Ensemble model
 
