@@ -803,6 +803,14 @@ Random Forest is an ensemble learning method that combines multiple decision tre
 
 ii. Now train the data using the training data set by RF. Get the testing error of majority vote. Also explain how you tune the tuning parameters (`mtry` and `ntree`). 
 
+```{r}
+
+# Output training dataset for Random Forest
+write.csv(data_train, "data/data_train.csv", row.names = F)
+
+
+```
+
 ## 4. Boosting 
 
 Now use `XGBoost` to build the fourth predictive equation. Evaluate its testing error. 
