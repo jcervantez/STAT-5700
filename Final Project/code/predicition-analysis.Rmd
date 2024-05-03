@@ -1,0 +1,620 @@
+---
+title: "Prediction Analysis"
+date: "2024-04-30"
+output: 
+  html_document: 
+    code_folding: show
+    highlight: haddock
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document: 
+    number_sections: yes
+    toc: yes
+    toc_depth: '4'
+  word_document: 
+    toc: yes
+    toc_depth: '4'
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+# Remove all existing objects from environment
+rm(list = ls())
+
+# Load libraries
+library("tidyverse") # open source packages for tidy data
+library("ggsci") # color palettes from scientific journals
+library("sandwich") # calculating HC standard errors
+library("car")
+library("stargazer")
+library("skimr") # generate easy data summaries
+library("broom")
+library("pander")
+
+# Set dplyr::select function as the default function
+select <- dplyr::select
+
+# Set plot themes
+theme_set(theme_classic())
+options(
+  ggplot2.discrete.colour = ggsci::scale_colour_npg,
+  ggplot2.discrete.fill = ggsci::scale_fill_npg
+)
+
+# Set option so that scientific notation isn't displayed
+options(scipen = 999)
+
+```
+
+# INGEST DATA
+
+```{r ingest_and_clean_data, include=FALSE}
+
+# Ingest Data ------------------------------------------------------------------
+
+# Read .csv file
+vaccination_raw <- read_csv("vaccination-30-days.csv")
+
+# Create Day, Time, and Condition Factors --------------------------------------
+
+# --- Create labels for factors
+
+# Define the weekdays in order
+weekdays <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+# Define times in 30-minute intervals
+times <- sprintf("%02d:%02d", rep(0:23, each = 2), rep(c(0, 30), times = 24))
+times_starting_noon <- c(times[25:48], times[1:24])
+
+# Create all combinations of weekdays and times
+combos <- expand.grid(Day = weekdays, Time = times)
+
+# Order by weekday first, then by time
+combos <- combos[order(combos$Day, combos$Time), ]
+
+# Combine Day and Time into a single string
+time_intervals <- with(combos, paste(Day, Time, sep = "_"))
+
+# Define factors for days
+days <- c("day_1", "day_2", "day_3")
+
+# Change variables into factors for each file
+# Add missing indicators for medicare and medicaid
+vaccination_all_fields <- vaccination_raw |>
+  mutate(
+    last_vax_time_30_min = substr(last_vax_time_30_min, 1, 5),
+    last_vax_time_30_min = factor(last_vax_time_30_min, levels = times),
+    last_vax_dow_time_30_min = factor(last_vax_dow_time_30_min, levels = time_intervals),
+    last_vax_dow_30_min = factor(last_vax_dow_30_min, levels = weekdays),
+    insurance_commercial = ifelse(insurance_medicaid == 0 & insurance_medicare == 0 & insurance_other == 0, 1, 0),
+    insurance_missing = ifelse(is.na(insurance_medicaid) | is.na(insurance_medicare) | is.na(insurance_other), 1, 0),
+    insurance_medicaid = ifelse(insurance_missing == 1, 0, insurance_medicaid),
+    insurance_medicare = ifelse(insurance_missing == 1, 0, insurance_medicare),
+    condition = factor(condition, levels = c("control", "popular", "personal")),
+    control = ifelse(condition == "control", 1, 0),
+    day_3 = ifelse(day_1 == 0 & day_2 == 0, 1, 0),
+    insurance = factor(
+      case_when(
+        insurance_commercial == 1 ~ "commercial", 
+        insurance_medicaid == 1 ~ "medicaid",
+        insurance_medicare ==1 ~ "medicare",
+        insurance_other == 1 ~ "other",
+        insurance_missing == 1 ~ "missing"
+        )
+      ),
+    day_of_text = factor(
+      case_when(
+        day_1 == 1 ~ "day_1",
+        day_2 == 1 ~ "day_2",
+        day_3 == 1 ~ "day_3"),
+      levels = days),
+    timezone = factor(timezone)
+  ) |>
+  relocate(insurance, insurance_commercial, .before = insurance_medicaid) |>
+  relocate(insurance_missing, .after = insurance_other) |>
+  relocate(control, .before = popular) |>
+  relocate(day_3, .after = day_2) |>
+  relocate(day_of_text, .before = day_1)
+
+# Drop rows with missing data (57 obserations where there is no last vax time)
+rows_with_missing <- which(apply(vaccination_all_fields, 1, function(x) any(is.na(x))))
+vaccination_all_fields <- vaccination_all_fields[-rows_with_missing,]
+
+# Generate subset of vaccination data with indicator variables only
+vaccination_ind <- select(
+  vaccination_all_fields, 
+  -condition, 
+  -insurance,
+  -day_of_text,
+  -last_vax_dow_time_30_min, 
+  -last_vax_time_30_min, 
+  -last_vax_dow_30_min, 
+  -timezone
+  )
+
+# Generate subset of vaccination data with categorical variables
+vaccination <- vaccination_all_fields |>
+  select( 
+    -control, -popular, -personal,
+    -insurance_commercial, -insurance_medicare, -insurance_medicaid, -insurance_other, -insurance_missing,
+    -day_1, -day_2, -day_3,
+    -last_vax_dow_time_30_min,
+  ) |>
+  mutate(
+    last_vax_time_30_min = factor(last_vax_time_30_min, levels = times_starting_noon)
+    )
+
+```
+
+# Exploratory Data Analysis
+
+## Spearman's Correlation Table
+
+```{r bc_30_day, include=FALSE}
+
+# Generate a correlation matrix
+cor_matrix <- cor(vaccination_ind, method = "spearman")
+
+# Reshape the correlation matrix
+cor_reshape <- melt(cor_matrix)
+
+# Create a color palette with red for negative correlations and blue for positive correlations
+col_palette <- colorRampPalette(c("#3C5488FF", "white", "#E64B35FF"))(n = 100)
+
+# Open a PNG graphics device
+png("spearman-correlation-plot.png", width = 800, height = 800)
+
+# Use corrplot to plot the correlation matrix and color code it
+corrplot(cor_matrix, type = "upper", tl.col = "black", col = col_palette,
+         addCoef.col = "black", number.cex = 0.8, mar = c(0,0,1,0))
+
+dev.off()
+
+```
+
+## Generate Barplots for specific variables
+
+```{r, include=FALSE}
+
+# Boxplot on Prev Flu Vax Count
+ggplot(vaccination_all_fields, aes(x = factor(flu_vax_30_days), y = prev_flu_vax_count)) +
+  geom_boxplot(fill = "#3B4992FF", outlier.shape = NA) + 
+  labs(x = "Vaccination after 30 Days", y = "Number of Past Flu Shots in 8 Years")
+
+ggsave("past-flu-shots-boxplot.png", width = 8, height = 4.5, dpi = 500)
+
+# Boxplot on Age
+ggplot(vaccination_all_fields, aes(x = factor(flu_vax_30_days), y = age)) +
+  geom_boxplot(fill = "#3B4992FF", outlier.shape = NA) + 
+  labs(x = "Vaccination after 30 Days", y = "Age")
+
+ggsave("age-boxplot.png", width = 8, height = 4.5, dpi = 500)
+
+```
+
+## Mosaic plot
+
+```{r, include=FALSE}
+
+library(vcd)
+
+# Generate dataframe for mosaic plots
+vaccination_mosaic <- vaccination_all_fields |>
+  select(flu_vax_30_days, insurance_medicare, flu_vax_prev_season) |>
+  mutate(
+    flu_vax_30_days = ifelse(flu_vax_30_days == 1, "Yes", "No"),
+    flu_vax_prev_season = ifelse(flu_vax_prev_season == 1, "Yes", "No"),
+    insurance_medicare = ifelse(insurance_medicare == 1, "Yes", "No"),
+    flu_vax_30_days = factor(flu_vax_30_days),
+    flu_vax_prev_season = factor(flu_vax_prev_season),
+    insurance_medicare = factor(insurance_medicare)
+  )
+
+# Create a contingency table
+tab <- table(vaccination_mosaic$flu_vax_30_days, vaccination_mosaic$flu_vax_prev_season)
+
+# Save PNG 1 
+png("mosaic-plot-vaccination-prev-flu-vax.png", width = 1200, height = 800, res = 200)
+
+# Create mosaic plot 1
+vcd::mosaic(flu_vax_30_days ~ flu_vax_prev_season, 
+            data = vaccination_mosaic,
+            direction = c("v", "h")
+            )
+
+dev.off()
+
+# Save PNG 2
+png("mosaic-plot-vaccination-medicare.png", width = 1200, height = 800, res = 200)
+
+# Create mosaic plot 2
+vcd::mosaic(flu_vax_30_days ~ insurance_medicare, 
+            data = vaccination_mosaic,
+            direction = c("v", "h")
+            )
+
+dev.off()
+
+
+```
+
+
+## Heatmap of past vaccination times
+
+```{r}
+
+times_open <- sprintf("%02d:%02d", rep(8:21, each = 2), rep(c(0, 30), times = 14))
+
+df_heatmap_all <- vaccination_all_fields |>
+  filter(flu_vax_30_days == 1) |>
+  group_by(last_vax_dow_30_min, last_vax_time_30_min) |>
+  summarise(count = n()) |>
+  ungroup() |>
+  mutate(total = sum(count), percent = count / total) |>
+  filter(last_vax_time_30_min %in% times_open)
+
+# Create the heatmap
+ggplot(df_heatmap_all, aes(x = last_vax_dow_30_min, y = last_vax_time_30_min, fill = percent)) +
+  geom_tile() +  # Create the tiles
+  scale_fill_gradient(low = "white", high = "#3B4992FF", guide = guide_colourbar(ticks = T)) +  # Set the color gradient
+  labs(fill = "% of Total Appointments", x = "Day of Week", y = "Time of Day") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + # Improve x-axis labels readability
+  scale_y_discrete(limits = rev(times_open))
+
+ggsave("last-vaccination-heatmap.png", width = 8, height = 4.5, dpi = 500)
+
+```
+
+# Divide Dataset into 60% Training Data, 20% Testing Data, and 20% Final Validation 
+
+```{r}
+
+# Set partitions
+n_total <- nrow(vaccination)
+n_train <- round(n_total * 0.6)
+n_test <- round(n_total * 0.2)
+n_train_and_test <- n_train + n_test
+n_validation <- n_total - n_train_and_test
+
+# Create separate datasets
+set.seed(488)
+data_train <- vaccination[sample(n_total, n_train, replace = FALSE), ]
+data_not_train <- anti_join(vaccination, data_train)
+
+set.seed(2002)
+data_test <- data_not_train[sample(nrow(data_not_train), n_test, replace = FALSE), ]
+data_validate <- anti_join(data_not_train, data_test)
+
+data_train_and_test <- rbind(data_train, data_test)
+
+library(glmnet)
+library(caret)
+
+# Also extract everything in matrix form
+data_train_X <- model.matrix(~., data = data_train[,-1])
+data_train_Y <- data_train$flu_vax_30_days
+data_test_YX <- model.matrix(~., data = data_test)[,-1]
+
+# Also extract everything with Y as factor for random forest ranger package
+data_train_rf <- data_train
+data_train_rf$flu_vax_30_days <- factor(data_train_rf$flu_vax_30_days)
+
+```
+
+# Predictive Classifiers
+
+## OLS
+
+```{r ols, echo=FALSE}
+
+library(pROC)
+
+# Run OLS
+fit_ols <- lm(flu_vax_30_days ~ ., data = data_train)
+
+# Output summary
+summary(fit_ols)
+
+# Obtain the predicted probabilities from the model
+predicted_prob <- predict(fit_ols, data_test, type = "response")
+predicted_prob <- ifelse(predicted_prob < 0, 0, predicted_prob)
+
+# Plot ROC curve and calculate AUC
+roc_ols <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_ols)
+
+# Calculate the auc_value
+auc_value <- auc(roc_ols)
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+```
+
+## Logistic Regression
+
+```{r}
+
+# Run Logit
+fit_logit <- glm(flu_vax_30_days ~ ., family = binomial(link = "logit"), 
+                 data = data_train)
+
+# Output summary
+summary(fit_logit)
+
+# Obtain the predicted probabilities from the model
+predicted_prob <- predict(fit_logit, data_test, type = "response")
+predicted_prob <- ifelse(predicted_prob < 0, 0, predicted_prob)
+
+# Plot ROC curve and calculate AUC
+roc_logit <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_logit)
+
+# Calculate the auc_value
+auc_value <- auc(roc_logit)
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+```
+
+## Relaxed Lasso w/ OLS and Logistic Regression
+
+```{r relaxed_lasso, echo=FALSE}
+
+# Set the seed
+set.seed(153)
+
+# Fit the Lasso model
+fit_lasso <- cv.glmnet(data_train_X, data_train_Y, alpha = 1, nfolds = 15, intercept = F)
+
+# Plot the lasso fit
+plot(fit_lasso)
+
+# Get coefficients for lambda.1se
+coef_1se <- coef(fit_lasso, s="lambda.1se")  
+coef_1se <- coef_1se[which(coef_1se !=0),] 
+var_1se <- rownames(as.matrix(coef_1se))[-1] # output the names  dim(as.matrix(coef.min))
+
+# Prepare the dataset for a relaxed lasso with logistic regression
+data_train_subset <- cbind(data_train_Y, data_train_X[,var_1se]) |>
+  as_tibble() |>
+  rename(flu_vax_30_days = data_train_Y)
+
+# LOGIT RELAXED LASSO ----------------------------------------------------------
+
+# Run Logit
+fit_relaxed_lasso_logit <- glm(flu_vax_30_days ~ ., family = binomial(link = "logit"), 
+                 data = data_train_subset)
+
+# Output summary
+summary(fit_relaxed_lasso_logit)
+
+# Obtain the predicted probabilities from the model
+predicted_prob <- predict(fit_relaxed_lasso_logit, as_tibble(data_test_YX), type = "response")
+
+# Plot ROC curve and calculate AUC
+roc_relaxed_lasso_logit <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_relaxed_lasso_logit)
+
+# Calculate the auc_value
+auc_value <- auc(roc_relaxed_lasso_logit)
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+
+# OLS RELAXED LASSO ---------------------------------
+
+
+# Run Logit
+fit_relaxed_lasso_ols <- lm(flu_vax_30_days ~ ., data = data_train_subset)
+
+# Output summary
+summary(fit_relaxed_lasso_ols)
+
+# Obtain the predicted probabilities from the model
+predicted_prob <- predict(fit_relaxed_lasso_ols, as_tibble(data_test_YX), type = "response")
+predicted_prob <- ifelse(predicted_prob < 0, 0, predicted_prob)
+
+# Plot ROC curve and calculate AUC
+roc_relaxed_lasso_ols <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_relaxed_lasso_ols)
+
+# Calculate the auc_value
+auc_value <- auc(roc_relaxed_lasso_ols)
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+
+```
+
+## Random Forest
+
+```{r}
+
+library(ranger)
+set.seed(1111)
+
+# Run Random Forest Algorithm
+fit_rf <- ranger(flu_vax_30_days~., data_train_rf, mtry = 4, 
+                    num.trees = 500, splitrule = "gini",
+                    importance = "impurity", probability = T)
+
+# Obtain the predicted probabilities from the model
+predicted_prob <- predict(fit_rf, data_test, type = "response")$predictions[,2]
+
+# Plot ROC curve and calculate AUC
+roc_rf <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_rf)
+
+# Calculate the auc_value
+auc_value <- auc(roc_rf)
+
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+
+```
+
+## Neural Network
+
+```{r}
+
+library(caret)
+library(neuralnet)
+library(nnet)
+set.seed(221)
+
+data_train$flu_vax_30_days <- factor(data_train$flu_vax_30_days)
+data_test$flu_vax_30_days <- factor(data_test$flu_vax_30_days)
+
+fit_nn <- nnet(flu_vax_30_days ~ ., data = data_train, size = 10, maxit = 100)
+
+# Make predictions on test data
+predicted_prob <- predict(fit_nn, data_test, type = "raw")
+
+# Plot ROC curve and calculate AUC
+roc_nn <- roc(data_test$flu_vax_30_days, predicted_prob)
+plot(roc_nn)
+
+# Calculate the auc_value
+auc_value <- auc(roc_nn)
+
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_test$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_test$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+
+```
+
+## Graph ROC Curves
+```{r}
+
+# Generate png device
+png("ROC-curve-comparison.png", width = 1200, height = 800, res = 150)
+
+# Plot curve with false-positive on the x-axis
+plot(1-roc_ols$specificities, roc_ols$sensitivities, col="#E64B35FF", pch=12, lty=1, cex=.1,
+     xlab="False Positive",
+     ylab="Sensitivity")
+points(1-roc_logit$specificities, roc_logit$sensitivities, col="#DF8F44FF", pch=13, lty=2, cex = .1)
+points(1-roc_relaxed_lasso_ols$specificities, roc_relaxed_lasso_ols$sensitivities, col="#008B45FF", pch=14, lty=3, cex = .1)
+points(1-roc_relaxed_lasso_logit$specificities, roc_relaxed_lasso_logit$sensitivities, col="#7E6148FF", pch=15, lty=4, cex = .1)
+
+points(1-roc_rf$specificities, roc_rf$sensitivities, col="#008280FF", pch=16, lty=5, cex = .1)
+points(1-roc_nn$specificities, roc_nn$sensitivities, col="#3B4992FF", pch=17, lty=6, cex = .1)
+legend("bottomright", legend = c("OLS", "Logit", "Relaxed Lasso - OLS", "Relaxed Lasso - Logit", "Random Forest", "Neural Net"),
+       col = c("#E64B35FF", "#DF8F44FF", "#008B45FF", "#7E6148FF", "#008280FF", "#3B4992FF"), pch = c(12:17), lty = c(1:6))
+
+dev.off()
+```
+
+# Validation
+
+```{r}
+# Obtain the predicted probabilities from the OLS model on validation set
+predicted_prob <- predict(fit_ols, data_validate, type = "response")
+predicted_prob <- ifelse(predicted_prob < 0, 0, predicted_prob)
+
+# Plot ROC curve and calculate AUC 
+roc_ols <- roc(data_validate$flu_vax_30_days, predicted_prob)
+plot(roc_ols)
+
+# Calculate the auc_value
+auc_value <- auc(roc_ols)
+
+# Establish a threshold at the optimal point on the ROC curve
+threshold <- 0.5
+
+# Use threshold to classify predictions  
+predicted_vax <- ifelse(predicted_prob > threshold, 1, 0)
+
+# Create the confusion table
+confusion_table <- table(Predicted = predicted_vax, Actual = data_validate$flu_vax_30_days)
+confusion_table
+
+dput(confusion_table)
+
+# Calculate the misclassification error
+misclassification_error <- mean(predicted_vax != data_validate$flu_vax_30_days)
+print(paste("Misclassification Error:", misclassification_error))
+
+```
