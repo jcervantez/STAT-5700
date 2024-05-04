@@ -73,9 +73,9 @@ Data variables
 
 ## Predictive Modeling
 
-I ran each of the models below by using the training set to generate a model, then evaluating the model on the test set to calculate the AUC, misclassification error, and confusion table. 
+I ran each of the models below by using the training set to generate a model, then evaluating the model on the validation test set to calculate the AUC, misclassification error, and confusion table. 
 
-Then finally, I will pick the best classifier and run it on the validation dataset to see how well it performs.
+Then finally, I will pick the best classifier and run it on the held-out test dataset to see how well it performs.
 
 ### OLS w/ Classifier
 
@@ -100,8 +100,11 @@ misspecification_error <- 0.117713619530929
 
 ### Logistic Regression
 
-Notes:
-* Used a threshold of 50% to calculate the predicted class (vaccination 30 days after treatment or not)
+Next, we use logistic regression to predict whether an individual will get vaccinated given their covariates. Logistic regression maximizes the probability that the outcome of interest occurs, and we can interpret the output coefficients as probabilities that quantify the effect of each covariate on the log odds of vaccination. We use all available covariates to fit our model, and to make predictions, we use a threshold of 0.5. That is, if the $\hat{y} \geq 0.5$, then we predict that the individual will get vaccinated. Using a threshold of 0.5 is more parsimonious and makes more intuitive sense than using a different threshold would. 
+
+This model obtains an AUC of 0.7624 and a misspecification error of 0.119. Looking into the breakdown of errors, this model correctly predicted that 179,014 individuals would not get vaccinated and that 843 individuals would get vaccinated but incorrectly predicted that 1,099 individuals got vaccinated (false positives) and that 23,192 did not get vaccinated (false negatives). 
+
+Comparing our logistic regression model with our OLS model, we see very similar results of the AUC and misspecification error. However, the OLS regression model outperforms the logistic regression model in both false positives, while the logistic regression model outputs fewer false negatives. Given the close performance of these two models, we may want to consider the interpretability of the models as well as the kinds of mistakes they make to evaluate which model we would prefer. If we want to ensure that we will not be overly optimistic, then we will prefer the model with a lower false positive rate, which in this case is the OLS regression model. Should these vaccination predictions be used to inform vaccine stocking decisions, an inflated estimate could lead to wasted vaccines. On the other hand, if we want to be conservative and not over-predict the number of individuals who would like to get vaccinated, then we would prefer the model with a lower false negative rate, which in this case is the logistic regression model.  
 
 
 ```{r}
@@ -115,6 +118,10 @@ misspecification_error <- 0.118987205360817
 
 
 ### Relaxed LASSO with Logit
+
+In order to more effective compare the OLS and logistic regression models, we also run a relaxed LASSO with logit model. As with the above models, we use a threshold of 0.5 to determine if an individual is predicted to have gotten vaccinated or not. By creating a model that only incorporates the most important variables, we can compare which variables are selected for the OLS versus logistic regression models, which can then inform our evaluation of which model is more suitable for this task. [TODO: selected covariates]
+
+This model achieves an AUC of 0.7404 and a misspecification error of 0.120. It correctly predicts that 178,570 individuals did not get vaccinated and that 1,048 individuals did get vaccinated but incorrectly predicts that 1,543 individuals got vaccinated even though they did not (false positives) and that 22,987 individuals did not get vaccinated when they actually did (false negatives).  Using LASSO slightly decreases accuracy metrics in terms of both the AUC and misspecification error when compared to the logistic regression model. As with the regular OLS and logistic regression models, the relaxed LASSO with OLS model outperforms the relaxed LASSO with logit model. 
 
 ```{r}
 confusion_table <- structure(c(178570L, 1543L, 22987L, 1048L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
@@ -142,9 +149,13 @@ misspecification_error <- 0.117772400415385
 
 ### Random Forest
 
-manually tuned the model (because r packages were not available on the secure server)
+The above models have high false negative rates, which may indicate that linear and logistic regressions cannot fully capture the relationship between the covariates and vaccination propensities. As such, we run a random forest model, which can allow for more flexibility. Our random forest model has mtry = 4, meaning that we split on four randomly selected predictors at each split, and ntree = 500, meaning that our forest consists of 500 trees. We arrived at these hyperparameters via manual tuning as the required R packages for finding the optimal hyperparameters were not available on the secure server.
 
-mtry = 4, ntree = 500
+The random forest model achieves an AUC of 0.7489 and a misspecification error of 0.119. Despite the additional flexibility offered by the random forest model, the AUC is lower and there is no meaningful difference in the misspecification error when compared to those of the OLS and logistic regression models. Considering the confusion matrix, the random forest model correctly predicted that 179,382 individuals were not vaccinated (true negatives) and 494 were vaccinated (true positives) but incorrectly predicted tat 731 individuals were vaccinated when they were not (false positives) and 23,541 individuals were not vaccinated when they were (false negatives). Again, there does not appear to be improvement in the random forest model when compared to the OLS and logistic regression models. 
+
+<!-- manually tuned the model (because r packages were not available on the secure server) -->
+
+<!-- mtry = 4, ntree = 500 -->
 
 ```{r}
 confusion_table <- structure(c(179382L, 731L, 235411, 494L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
@@ -157,10 +168,14 @@ misspecification_error <- 0.118894135627094
 
 ### Neural Network
 
-Ran a neural net using the nnet package in R
-- uses a logistic activation function
-- neural network with 1 hidden layer with 10 nodes
-- 100 iterations (the most the server could take - it was very slow)
+<!-- Ran a neural net using the nnet package in R -->
+<!-- - uses a logistic activation function -->
+<!-- - neural network with 1 hidden layer with 10 nodes -->
+<!-- - 100 iterations (the most the server could take - it was very slow) -->
+
+Our final model is a neural network with 1 hidden layer of 10 nodes with a logistic activation function and an output layer that uses a sigmoid activation. We can interpret the outputs as the probability that an input individual and their associated covariates has been vaccinated. We implemented our neural network using the nnet package in R, and to train our neural network, we run it over 100 epochs. Due to computational resource constraints, we were not able to tune our hyperparameters or run the neural network for more epochs.
+
+The neural network obtains an AUC of 0.7644, which is the highest of all of the models, and a misspecification error of 0.118. [TODO: confusion table] While the neural network slightly outperforms all of the other models in terms of the AUC, the comparable misspecification error shows that machine learning may not always lead to improvements in performance. Additionally, given the significantly higher resource requirements for running a neural network, simpler models are likely better suited for this problem. 
 
 ```{r}
 
