@@ -691,6 +691,72 @@ auc_ols <- 0.7444
 
 misspecification_error <- 0.117772400415385
 
+# Call:
+# lm(formula = flu_vax_30_days ~ ., data = data_train_subset)
+# 
+# Residuals:
+#      Min       1Q   Median       3Q      Max 
+# -0.59285 -0.13679 -0.07305 -0.02572  1.02243 
+# 
+# Coefficients:
+#                         Estimate  Std. Error t value            Pr(>|t|)    
+# (Intercept)          -0.02550431  0.00137636  -18.53 <0.0000000000000002 ***
+# age                   0.00110808  0.00002870   38.61 <0.0000000000000002 ***
+# insurancemedicaid    -0.01823033  0.00150489  -12.11 <0.0000000000000002 ***
+# insurancemedicare     0.02520762  0.00120520   20.92 <0.0000000000000002 ***
+# prev_flu_vax_count    0.04273636  0.00022311  191.55 <0.0000000000000002 ***
+# pharm_visits_last_yr  0.00136218  0.00004289   31.76 <0.0000000000000002 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.3063 on 612439 degrees of freedom
+# Multiple R-squared:  0.08461,	Adjusted R-squared:  0.0846 
+# F-statistic: 1.132e+04 on 5 and 612439 DF,  p-value: < 0.00000000000000022
+
+summary_relaxed_ols <- 
+
+structure(list(term = c("(Intercept)", "age", "insurancemedicaid", 
+"insurancemedicare", "prev_flu_vax_count", "pharm_visits_last_yr"
+), estimate = c(-0.0255043124339745, 0.00110808249277395, -0.0182303264245376, 
+0.0252076247228895, 0.0427363599556069, 0.00136218101356187), 
+    std.error = c(0.00137635733149909, 0.0000286976905967419, 
+    0.00150488806642738, 0.00120519885486741, 0.000223105285763917, 
+    0.0000428901729755858), statistic = c(-18.5302986733801, 
+    38.6122531023369, -12.1140746818576, 20.9157390260404, 191.552431441849, 
+    31.7597463255104), p.value = c(0.000000000000000000000000000000000000000000000000000000000000000000000000000123464512279793, 
+    0, 0.000000000000000000000000000000000897585529372591, 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000416434544630154, 
+    0, 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000352990706781159
+    )), row.names = c(NA, -6L), class = c("tbl_df", "tbl", "data.frame"
+))
+
+# Anova Table (Type II tests)
+# 
+# Response: flu_vax_30_days
+#                      Sum Sq     Df  F value                Pr(>F)    
+# age                     140      1  1490.91 < 0.00000000000000022 ***
+# insurancemedicaid        14      1   146.75 < 0.00000000000000022 ***
+# insurancemedicare        41      1   437.47 < 0.00000000000000022 ***
+# prev_flu_vax_count     3442      1 36692.33 < 0.00000000000000022 ***
+# pharm_visits_last_yr     95      1  1008.68 < 0.00000000000000022 ***
+# Residuals             57456 612439                                   
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+anova_relaxed_ols <- 
+
+structure(list(term = c("age", "insurancemedicaid", "insurancemedicare", 
+"prev_flu_vax_count", "pharm_visits_last_yr", "Residuals"), sumsq = c(139.870016948844, 
+13.767491984152, 41.0412677515415, 3442.30760939252, 94.6299016522244, 
+57456.2367847603), df = c(1, 1, 1, 1, 1, 612439), statistic = c(1490.90608963889, 
+146.750805397657, 437.468139005462, 36692.3339912844, 1008.68148666079, 
+NA), p.value = c(0, 0.000000000000000000000000000000000897585529357839, 
+0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000416434544623281, 
+0, 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000352990706777661, 
+NA)), class = c("tbl_df", "tbl", "data.frame"), row.names = c(NA, 
+-6L), heading = c("Anova Table (Type II tests)\n", "Response: flu_vax_30_days"
+))
+
+
 ```
 
 - The Relaxed Lasso with OLS model first used a relaxed version of the Lasso (least absolute shrinkage and selection operator) regression to select important features, and then fit an OLS regression using those selected variables to predict flu vaccination probabilities. A 50% threshold was applied to classify patients as vaccinated or not based on the predicted probabilities.
@@ -706,6 +772,10 @@ The random forest model achieves an AUC of 0.7489 and a misspecification error o
 <!-- manually tuned the model (because r packages were not available on the secure server) -->
 
 <!-- mtry = 4, ntree = 500 -->
+
+![Random Forest Variable Importance - Gini ](figures/random-forest-variable-importance.png){width=100%} 
+
+
 
 ```{r}
 confusion_table <- structure(c(179382L, 731L, 235411, 494L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
@@ -730,7 +800,9 @@ Despite predicting all 0s, the neural network obtains an AUC of 0.7644, which is
 
 <!-- Note: Here is a plot of the neural network architecture: it is a 73-10-1 network with 751 weights. Here is a plot of the architecture: -->
 
-<!-- ![Neural Network Architecture](figures/neural-net-architecture.png){width=100%} -->
+![Neural Network Architecture](figures/neural-net-architecture.png){width=100%} 
+
+![Neural Network Variable Importance - Garson ](figures/neural-net-variable-importance.png){width=100%} 
 
 
 ```{r}
@@ -753,13 +825,14 @@ misspecification_error <- 0.117733213159081
 
 ![ROC Curve Comparison of Different Models](figures/ROC-curve-comparison.png){width=100%}
 
-OLS and Neural net performed the best on both AUC and misclassification error. Both models essentially predicted that nobody would get vaccinated. In this way, it is interesting that a simple heuristic (guessing that nobody would get vaccinated) would match the performance of the two best models and outperform all the other models. 
+<!-- Notes from Rob -->
+<!-- OLS and Neural net performed the best on both AUC and misclassification error. Both models essentially predicted that nobody would get vaccinated. In this way, it is interesting that a simple heuristic (guessing that nobody would get vaccinated) would match the performance of the two best models and outperform all the other models.  -->
 
-Went with OLS as the best model because it was the most **interpretable** and was tied for the best AUC and misclassification error.
+<!-- Went with OLS as the best model because it was the most **interpretable** and was tied for the best AUC and misclassification error. -->
 
-Hints that predictions are largely not dependent on model choice - could imply that we don't have good enough data features to be able to improve on our prediction (not a function of non-linearity or model-free approaches), and not good enough data features to be able to differentiate and distinguish between those who will and will not get vaccinated within 30 days. 
+<!-- Hints that predictions are largely not dependent on model choice - could imply that we don't have good enough data features to be able to improve on our prediction (not a function of non-linearity or model-free approaches), and not good enough data features to be able to differentiate and distinguish between those who will and will not get vaccinated within 30 days.  -->
 
-Testing our model on the hold-out 20% validation set results below yields errors consistent with our testing errors. 
+<!-- Testing our model on the hold-out 20% validation set results below yields errors consistent with our testing errors.  -->
 
 ```{r}
 confusion_table <- structure(c(172345L, 4L, 23217L, 2L), dim = c(2L, 2L), dimnames = list(
