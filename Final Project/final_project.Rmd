@@ -28,6 +28,8 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(pander)
 ```
 
+\newpage
+
 \textcolor{red}{\textbf{CONFIDENTIAL - PLEASE DO NOT SHARE}}
 
 This report uses data in partnership with a large pharmacy in the United States. Since the data is subject to HIPAA privacy requirements, all the data for the analysis was conducted on a separate secure server, in accordance with the contractual obligations with the pharmacy partner. 
@@ -39,15 +41,52 @@ Since there are restrictions on how this data may be used, we ask that you do no
 # Executive Summary (1 page)
 
 ## Introduction
+
+Influenza vaccinations are a crucial public health intervention to reduce the burden of seasonal flu. However, vaccination rates often fall short of targets. In collaboration with a large U.S. pharmacy chain, we conducted a study to assess the effectiveness of text message reminders on flu vaccination uptake and to compare the performance of different predictive models in identifying patients likely to get vaccinated.
+
 ## Study Goal
+
+The primary objective of this study was to evaluate the impact of a text message reminder intervention on patients' likelihood of receiving a flu vaccination within 30 days. Additionally, we aimed to develop and compare predictive models to identify patients most likely to get vaccinated following the reminder.
+
 ## Data Description
+
+The dataset, obtained through our pharmacy partner, includes 1 million patients who received a flu vaccination reminder text message. The data captures patient demographics, vaccination history, text message reminder details, and pharmacy visit information. The primary outcome variable is flu vaccination within 30 days of receiving the reminder.
+
 ## Methodology
+
+We developed and evaluated six predictive models: OLS with Classifier, Logistic Regression, Relaxed Lasso with Logit, Relaxed Lasso with OLS, Random Forest, and Neural Network. Model performance was assessed using metrics such as area under the ROC curve (AUC), misclassification error, and confusion matrices.
+
+Exploratory data analysis revealed associations between vaccination uptake and variables such as age, previous vaccination history, pharmacy visit frequency, and Medicare insurance status. These insights informed feature selection for the predictive models.
+
 ## Results
+
+The OLS with Classifier and Neural Network models achieved the highest AUC (0.763 and 0.764, respectively) and lowest misclassification error (0.118 for both) on the test set. However, the Neural Network predicted no vaccinations for all patients, indicating potential limitations.
+
+The Logistic Regression, Relaxed Lasso with Logit, Relaxed Lasso with OLS, and Random Forest models achieved AUCs ranging from 0.740 to 0.762 and misclassification errors between 0.118 and 0.120.
+
+While the OLS with Classifier and Neural Network had the best performance metrics, the OLS with Classifier is preferred due to its interpretability and lower false positive rate, which is crucial for informing vaccine stocking decisions.
+
+\newpage
+
 
 # Detailed Analyses
 ## Description of Data
 
-Data variables
+The dataset used in this study was obtained through a partnership with a large nationwide pharmacy chain, where we conducted an intervention aimed at encouraging flu vaccinations. The intervention involved sending text message reminders to patients, with the primary outcome of interest being whether a patient received a flu vaccination within 30 days of receiving the reminder (`flu_vax_30_days`).
+
+The content of the text message reminder (`condition`) was varied to test the effectiveness of different messaging strategies. The day the message was sent (`day_of_text`) was recorded. To assess the potential impact of multiple reminders, some patients received a second message (`SMS_twice`).
+
+In addition to the intervention variables, the dataset captures each patient's vaccination history. This includes whether they received a flu shot in the previous season (`flu_vax_previous_season`) and the total number of flu vaccinations they had received in the past 8 years (`prev_flu_vax_count`).
+
+The dataset also includes demographic variables such as age (`age`), gender (`male`, `female`), and insurance type (`insurance`). These factors may influence a patient's likelihood of receiving a flu vaccination and are important to consider in the analysis.
+
+To account for potential differences in patient behavior based on their level of engagement with the pharmacy, the dataset includes the number of visits that involved at least one prescription pickup or transaction in the past year (`pharm_visits_last_yr`).
+
+Lastly, the study captures temporal patterns in vaccination behavior by recording the day of the week (`last_vax_dow_30_min`) and time (`last_vax_time_30_min`) of the patient's last vaccination. The patient's timezone (`timezone`) is also included to ensure accurate representation of local times.
+
+This dataset combines intervention-specific variables with patient characteristics and historical behaviors. We aim to gain insights into the effectiveness of text message reminders in promoting flu vaccination uptake. 
+
+\textbf{Data variables}:
 
 - `flu_vax_30_days`: whether the patient received a flu vaccination within 30 days of treatment
 - `condition`: different text message content sent to the patient to encourage vaccination
@@ -64,7 +103,22 @@ Data variables
 - `last_vax_time_30_min`: the time of the patient's last vaccination (rounded to the last 30 minutes)
 - `timezone`: the patient's timezone
 
+\newpage
+
+
 ## Exploratory Data Analysis
+
+The exploratory data analysis section presents several visualizations that provide insights into the relationships between key variables and flu vaccination uptake within 30 days of receiving the text message reminder.
+
+Figure 1 shows a Spearman correlation plot of the key variables. The plot reveals strong positive correlations between the outcome variable `flu_vax_30_days` and several predictors, including `prev_flu_vax_count`, `flu_vax_prev_season`, `age`, and `pharm_visits_last_yr`. This suggests that patients who have received more flu vaccinations in the past, got vaccinated in the previous season, are older, and visit the pharmacy more frequently are more likely to get vaccinated within 30 days of the reminder.
+
+Figures 2 and 3 present boxplots comparing the distribution of age and the number of past flu shots between patients who did and did not get vaccinated within 30 days. In both cases, the boxplots for vaccinated patients are shifted higher, indicating that vaccinated patients tend to be older and have received more flu shots in the past compared to unvaccinated patients.
+
+Figures 4 and 5 display mosaic plots examining the relationship between Medicare insurance and flu vaccination within 30 days. The plots show that a higher proportion of patients with Medicare insurance get vaccinated compared to those without Medicare. This suggests that insurance type, specifically Medicare coverage, may influence a patient's likelihood of getting a flu shot after receiving the reminder.
+
+Finally, Figure 6 presents a heatmap of the last vaccination times for patients. The heatmap reveals patterns in the timing of past vaccinations, with higher vaccination rates in the morning and early afternoon hours. This suggests that the time of day when a patient typically gets vaccinated may be a useful predictor of their likelihood to get a flu shot after receiving the reminder.
+
+
 
 ![Spearman Correlation Plot of Key Variables](figures/spearman-correlation-plot.png){width=100%}
 
@@ -79,7 +133,19 @@ Data variables
 ![Heatmap of Last Vaccination Times](figures/last-vaccination-heatmap.png){width=100%}
 
 
+\newpage
+
 ## Predictive Modeling
+
+To predict whether a patient will receive a flu vaccination within 30 days of the text message reminder, we developed and evaluated six different predictive models: OLS with Classifier, Logistic Regression, Relaxed Lasso with Logit, Relaxed Lasso with OLS, Random Forest, and Neural Network.
+
+The OLS with Classifier and Logistic Regression models serve as our baseline approaches, using linear and logistic regression techniques, respectively. The Relaxed Lasso models (with Logit and OLS) extend these approaches by incorporating feature selection to identify the most informative predictors.
+
+We also explore two machine learning models: Random Forest and Neural Network. The Random Forest model allows for a more flexible, non-linear relationship between the predictors and the outcome, while the Neural Network model has the potential to capture complex patterns in the data.
+
+For each model, we evaluate its performance using metrics such as the area under the ROC curve (AUC) and misclassification error, as well as examining the confusion matrix to assess the model's ability to correctly predict vaccinated and unvaccinated patients.
+
+By comparing the performance of these six models, we aim to identify the approach that best predicts flu vaccination uptake within 30 days of the text message reminder.
 
 <!-- I ran each of the models below by using the training set to generate a model, then evaluating the model on the validation test set to calculate the AUC, misclassification error, and confusion table.  -->
 
@@ -213,9 +279,11 @@ misspecification_error <- 0.117713619530929
 
 ```
 
-- The OLS w/ Classifier model used an ordinary least squares (OLS) regression to predict the probability of a patient receiving a flu vaccination within 30 days of treatment. The model predictions were then converted to a binary classification (vaccinated or not) using a 50% probability threshold.
+The OLS with Classifier model utilized ordinary least squares (OLS) regression to estimate the probability of a patient getting vaccinated for influenza within 30 days of receiving the treatment message. The predicted probabilities were then converted into binary classifications of vaccinated or not vaccinated using a threshold of 50%.
 
-- When evaluated on the test set, the OLS w/ Classifier achieved an AUC of 0.763, indicating moderately strong predictive performance. The misclassification error was 0.118, meaning the model incorrectly predicted the vaccination status for about 11.8% of patients. Looking at the confusion table, the model correctly identified 180,113 patients who did not get vaccinated (true negatives) and 4 patients who did get vaccinated (true positives). However, it misclassified 24,031 vaccinated patients as not vaccinated (false negatives).
+When applied to the test set, the OLS with Classifier model achieved an area under the ROC curve (AUC) of 0.763, suggesting it has moderately good discriminatory power in identifying patients who will and will not get vaccinated. The overall misclassification error was 0.118, meaning the model's predictions were incorrect for 11.8% of patients.
+
+Examining the confusion matrix provides additional insight into the model's performance. It correctly identified a large number of patients who did not get vaccinated (180,113 true negatives) and a small number who did get vaccinated (4 true positives). However, the model struggled more with false negatives, incorrectly predicting 24,031 patients would not get vaccinated when they actually did. This suggests the model may be overly conservative in its vaccination predictions.
 
 ### Logistic Regression
 
@@ -457,9 +525,11 @@ misspecification_error <- 0.117772400415385
 
 ```
 
-- The Relaxed Lasso with OLS model first used a relaxed version of the Lasso (least absolute shrinkage and selection operator) regression to select important features, and then fit an OLS regression using those selected variables to predict flu vaccination probabilities. A 50% threshold was applied to classify patients as vaccinated or not based on the predicted probabilities.
+On the test set, the Relaxed Lasso with OLS model obtained an AUC of 0.744, indicating moderately good discrimination between vaccinated and unvaccinated patients, though not quite as high as the standard OLS with Classifier. The misclassification rate was 11.78%, so predictions were incorrect for just under 12% of patients.
 
-- The Relaxed Lasso with OLS achieved an AUC of 0.744 on the test set. The misclassification error was 11.78%. Examining the confusion table, this model correctly predicted 180,040 non-vaccinated patients (true negatives) and 65 vaccinated patients (true positives), while incorrectly classifying 23,970 patients as not vaccinated when they actually were (false negatives) and 73 as vaccinated when they were not (false positives).
+The confusion matrix shows this model correctly predicted a high number of true negatives (180,040 patients) and a moderate number of true positives (65 patients). It had a fairly low false positive rate, only predicting 73 patients would get vaccinated when they did not. However, like the OLS with Classifier, it had a much higher false negative rate, incorrectly predicting 23,970 patients would not get vaccinated when in fact they did. 
+
+This suggests that while using the Lasso for feature selection can help yield a more parsimonious model, it may come at a slight cost to overall performance compared to using all available predictors. Both OLS and Relaxed LASSO w/ OLS seem to do better at identifying patients who will not get vaccinated than those who will, which could relate to the class imbalance in the data with most patients not getting vaccinated.
 
 ### Random Forest
 
