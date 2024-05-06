@@ -546,7 +546,6 @@ plot(roc_nn)
 # Calculate the auc_value
 auc_value <- auc(roc_nn)
 
-
 # Establish a threshold at the optimal point on the ROC curve
 threshold <- 0.5
 

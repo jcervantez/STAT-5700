@@ -1,5 +1,5 @@
 ---
-title: "Does Model Choice Impact Classification Accuracy for Predicting Flu Vaccinations? Data from a 1-Million-Person Field Study"
+title: "Does Model Choice Impact Classification Accuracy for Predicting Flu Vaccinations? Analyzing a 1-Million-Person Vaccination Dataset"
 author:
 - Jose Cervantez
 - Bethany Hsaio
@@ -42,15 +42,17 @@ Since there are restrictions on how this data may be used, we ask that you do no
 
 ## Introduction
 
-Influenza vaccinations are a crucial public health intervention to reduce the burden of the seasonal flu. However, vaccination rates often fall short of targets. In collaboration with a large U.S. pharmacy chain, we conducted a study to assess the effectiveness of text message reminders on flu vaccination uptake and to compare the performance of different predictive models in identifying patients likely to get vaccinated.
+Even though vaccines are a cost-effective method for decreasing mortality, morbidity, and healthcare expenses[^1], promoting recommended annual vaccinations against dangerous diseases remains a major public health challenge. For example, for the 2022-23 flu season, 53.1% of the U.S. population choose not to receive the recommended influenza vaccine even though such vaccines can prevent subsequent illnesses, hospitalizations, and deaths[^2].
+
+In collaboration with a large U.S. pharmacy chain, we collected a 1-million-person dataset where text messages were sent to patients to encourage a flu vaccination. Using this data set, we compare the performance of different predictive models to test how accurately we can identify patients who are likely to be vaccinated for the flu 30 days after receiving a text message. 
 
 ## Study Goal
 
-The primary objective of this study was to evaluate the impact of a text message reminder intervention on patients' likelihood of receiving a flu vaccination within 30 days. Additionally, we aimed to develop and compare predictive models to identify patients most likely to get vaccinated following the reminder.
+The primary objective of this study was to test if model choice impacts classification accuracy on patients' likelihood of receiving a flu vaccination within 30 days. We also aim to benchmark the predictive accuracy of the best model in predicting flu vaccination uptake, using information that is commonly available to pharmacies and providers. These results have implications for both policymakers, healthcare systems, and health providers who may want to predict vaccination uptake to inform planning and resource allocation.
 
 ## Data Description
 
-The dataset, obtained through our pharmacy partner, includes 1 million patients who received a flu vaccination reminder text message. The data captures patient demographics, vaccination history, text message reminder details, and pharmacy visit information. The primary outcome variable is flu vaccination within 30 days of receiving the reminder.
+The dataset, obtained through our pharmacy partner, includes 1 million patients who received a text message flu vaccination reminder text message. The data captures patient demographics, vaccination history, text message reminder details, and pharmacy visit information. The primary outcome variable is flu vaccination within 30 days of receiving the reminder.
 
 ## Methodology
 
@@ -72,17 +74,17 @@ While the OLS with Classifier and Neural Network had the best performance metric
 # Detailed Analyses
 ## Description of Data
 
-The dataset used in this study was obtained through a partnership with a large nationwide pharmacy chain, where we conducted an intervention aimed at encouraging flu vaccinations. The intervention involved sending text message reminders to patients, with the primary outcome of interest being whether a patient received a flu vaccination within 30 days of receiving the reminder (`flu_vax_30_days`).
+The dataset used in this study was obtained through a partnership with a large nationwide pharmacy chain, where text messages were sent to patients to encourage flu vaccinations. The text messages were sent in September 2023 during the start of the 2022-2023 flu vaccine season to patients who (1) were over the age of 18, (2) opted in to pharmacy communications, (3) received at least one vaccine at the pharmacy chain in the past. The primary outcome of interest being whether a patient received a flu vaccination within 30 days of receiving the reminder (`flu_vax_30_days`). 
 
-The content of the text message reminder (`condition`) was varied to test the effectiveness of different messaging strategies. The day the message was sent (`day_of_text`) was recorded. To assess the potential impact of multiple reminders, some patients received a second message (`SMS_twice`).
+The content of the text message reminder (`condition`) was varied to test the effectiveness of different messaging strategies. for example, one text message encouraged patients to get vaccinated at a *popular* time, while others encouraged patients to get vaccinated at a *personalized* time consistent with the time and day of week of thier last vaccination.  To assess the potential impact of multiple reminders, some patients received a second message (`SMS_twice`). Lastly, the day the message was sent (`day_of_text`) was also recorded.
 
-In addition to the intervention variables, the dataset captures each patient's vaccination history. This includes whether they received a flu shot in the previous season (`flu_vax_previous_season`) and the total number of flu vaccinations they had received in the past 8 years (`prev_flu_vax_count`).
+In addition to variables describing the text message, the dataset captures each patient's vaccination history. This includes whether they received a flu shot in the previous season (`flu_vax_previous_season`) and the total number of flu vaccinations they had received in the past 8 years (`prev_flu_vax_count`).
 
 The dataset also includes demographic variables such as age (`age`), gender (`male`, `female`), and insurance type (`insurance`). These factors may influence a patient's likelihood of receiving a flu vaccination and are important to consider in the analysis.
 
 To account for potential differences in patient behavior based on their level of engagement with the pharmacy, the dataset includes the number of visits that involved at least one prescription pickup or transaction in the past year (`pharm_visits_last_yr`).
 
-Lastly, the study captures temporal patterns in vaccination behavior by recording the day of the week (`last_vax_dow_30_min`) and time (`last_vax_time_30_min`) of the patient's last vaccination. The patient's timezone (`timezone`) is also included to ensure accurate representation of local times.
+Lastly, the study captures temporal patterns in vaccination behavior by recording the day of the week (`last_vax_dow_30_min`) and time (`last_vax_time_30_min`) of the patient's last vaccination. The patient's timezone (`timezone`) is also included as a general indicator of location (as any data that may identify a given participant is protected and cannot be shared).
 
 This dataset combines intervention-specific variables with patient characteristics and historical behaviors. We aim to gain insights into the effectiveness of text message reminders in promoting flu vaccination uptake. 
 
@@ -110,30 +112,29 @@ This dataset combines intervention-specific variables with patient characteristi
 
 The exploratory data analysis section presents several visualizations that provide insights into the relationships between key variables and flu vaccination uptake within 30 days of receiving the text message reminder.
 
-Figure 1 shows a Spearman correlation plot of the key variables. The plot reveals strong positive correlations between the outcome variable `flu_vax_30_days` and several predictors, including `prev_flu_vax_count`, `flu_vax_prev_season`, `age`, and `pharm_visits_last_yr`. This suggests that patients who have received more flu vaccinations in the past, got vaccinated in the previous season, are older, and visit the pharmacy more frequently are more likely to get vaccinated within 30 days of the reminder.
-
-Figures 2 and 3 present boxplots comparing the distribution of age and the number of past flu shots between patients who did and did not get vaccinated within 30 days. In both cases, the boxplots for vaccinated patients are shifted higher, indicating that vaccinated patients tend to be older and have received more flu shots in the past compared to unvaccinated patients.
-
-Figures 4 and 5 display mosaic plots examining the relationship between Medicare insurance and flu vaccination within 30 days. The plots show that a higher proportion of patients with Medicare insurance get vaccinated compared to those without Medicare. This suggests that insurance type, specifically Medicare coverage, may influence a patient's likelihood of getting a flu shot after receiving the reminder.
-
-Finally, Figure 6 presents a heatmap of the last vaccination times for patients. The heatmap reveals patterns in the timing of past vaccinations, with higher vaccination rates in the morning and early afternoon hours. This suggests that the time of day when a patient typically gets vaccinated may be a useful predictor of their likelihood to get a flu shot after receiving the reminder.
-
-
+Figure 1 shows a Spearman correlation plot of the key variables. The plot reveals strong positive monotonic correlations between the outcome variable `flu_vax_30_days` and several predictors, including `prev_flu_vax_count`, `flu_vax_prev_season`, `age`, and `pharm_visits_last_yr` (Figure 1 - first row). This suggests that patients who have received more flu vaccinations in the past, got vaccinated in the previous season, are older, and visit the pharmacy more frequently are more likely to get vaccinated within 30 days of the reminder.
 
 ![Spearman Correlation Plot of Key Variables](figures/spearman-correlation-plot.png){width=100%}
 
-![Boxplot of Vaccination (30 Days After Treatment) and Patient Age](figures/age-boxplot.png){width=100%}
+\newpage
 
-![Boxplot of Vaccination (30 Days After Treatment) and Number of Past Flu Shots](figures/past-flu-shots-boxplot.png){width=100%}
+Figures 2 and 3 present boxplots comparing the distribution of age and the number of past flu shots between patients who did and did not get vaccinated within 30 days. In both cases, the mean values for vaccinated patients are higher, indicating that vaccinated patients tend to be older and have received more flu shots in the past compared to unvaccinated patients.
 
-![Mosaic Plot of Vaccination (30 Days After Treatment) and Medicare Insurance](figures/mosaic-plot-vaccination-medicare.png){width=100%}
+![Boxplot of Vaccination (30 Days After Treatment) and Patient Age](figures/age-boxplot.png){width=75%}
 
-![Mosaic Plot of Vaccination (30 Days After Treatment) and Medicare Insurance](figures/mosaic-plot-vaccination-medicare.png){width=100%}
+![Boxplot of Vaccination (30 Days After Treatment) and Number of Past Flu Shots](figures/past-flu-shots-boxplot.png){width=75%}
 
-![Heatmap of Last Vaccination Times](figures/last-vaccination-heatmap.png){width=100%}
+Figures 4 and 5 display mosaic plots examining the relationship between Medicare insurance and flu vaccination within 30 days. The plots show that a higher proportion of patients with Medicare insurance get vaccinated compared to those without Medicare. This suggests that insurance type, specifically Medicare coverage, may influence a patient's likelihood of getting a flu shot after receiving the reminder.
 
+![Mosaic Plot of Vaccination (30 Days After Treatment) and Medicare Insurance](figures/mosaic-plot-vaccination-medicare.png){width=80%}
+
+![Mosaic Plot of Vaccination (30 Days After Treatment) and Medicare Insurance](figures/mosaic-plot-vaccination-medicare.png){width=80%}
 
 \newpage
+
+Finally, Figure 6 presents a heatmap of the last vaccination times for patients. The heatmap reveals patterns in the timing of past vaccinations, with higher vaccination rates on Monday, Wednesday, and Friday compared to other weekdays and weekends. Vaccination times also clustered in the late morning (11am) and early afternoon hour (3pm). If there is a pattern or routine to how and when patients get vaccinated, this information could be useful to predict the likelihood of subsequent vaccination thirty days after receiving a text message.
+
+![Heatmap of Last Vaccination Times](figures/last-vaccination-heatmap.png){width=100%}
 
 ## Predictive Modeling
 
@@ -143,24 +144,15 @@ The OLS with Classifier and Logistic Regression models serve as our baseline app
 
 We also explore two machine learning models: Random Forest and Neural Network. The Random Forest model allows for a more flexible, non-linear relationship between the predictors and the outcome, while the Neural Network model has the potential to capture complex patterns in the data.
 
-For each model, we evaluate its performance using metrics such as the area under the ROC curve (AUC) and misclassification error, as well as examining the confusion matrix to assess the model's ability to correctly predict vaccinated and unvaccinated patients.
+For each model, we evaluate its performance using metrics such as the area under the ROC curve (AUC) and misclassification error, as well as examining the confusion matrix to assess the model's ability to correctly predict vaccinated and unvaccinated patients. Our dataset was divided into three partitions: a 60% training set, a 20% testing set, and a 20% holdout validation set. The testing set was used to select the best-performing model and the validation set was used to evaluate the final model out-of-sample performance. 
 
 By comparing the performance of these six models, we aim to identify the approach that best predicts flu vaccination uptake within 30 days of the text message reminder.
 
-<!-- I ran each of the models below by using the training set to generate a model, then evaluating the model on the validation test set to calculate the AUC, misclassification error, and confusion table.  -->
-
-<!-- Then finally, I will pick the best classifier and run it on the held-out test dataset to see how well it performs. -->
-
 ### OLS w/ Classifier
-
-<!-- Notes: -->
-<!-- * Used an OLS regression model to predict the probability of receiving a flu vaccination within 30 days of treatment. -->
-<!-- * Used a threshold of 50% to calculate the predicted class (vaccination 30 days after treatment or not) -->
-
 
 ```{r, include = F}
 confusion_table <- structure(c(180113L, 0L, 24031L, 4L), dim = c(2L, 2L), dimnames = list(
-Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
+Predicted = c("Predicted - 0", "Predicted - 1"), Actual = c("Actual - 0", "Actual - 1")), class = "table")
 
 auc_ols <- 0.763
 
@@ -279,21 +271,17 @@ misspecification_error <- 0.117713619530929
 
 ```
 
-The OLS with Classifier model utilized ordinary least squares (OLS) regression to estimate the probability of a patient getting vaccinated for influenza within 30 days of receiving the treatment message. The predicted probabilities were then converted into binary classifications of vaccinated or not vaccinated using a threshold of 50%. The covariate with the highest magnitude as well as statistical significance is whether an individual received a vaccine in the previous season.
+The OLS with Classifier model utilized ordinary least squares (OLS) regression to estimate the probability of a patient getting vaccinated for influenza within 30 days of receiving the treatment message. The predicted probabilities were then converted into binary classifications of vaccinated or not vaccinated using a threshold of 50%. The covariate with the highest magnitude as well as statistical significance is whether an individual received a vaccine in the previous season (see Appendix for full model summary and ANOVA).
 
 When applied to the test set, the OLS with Classifier model achieved an area under the ROC curve (AUC) of 0.763, suggesting it has moderately good discriminatory power in identifying patients who will and will not get vaccinated. The overall misclassification error was 0.118, meaning the model's predictions were incorrect for 11.8% of patients.
 
-Examining the confusion matrix provides additional insight into the model's performance. It correctly identified a large number of patients who did not get vaccinated (180,113 true negatives) and a small number who did get vaccinated (4 true positives). However, the model struggled more with false negatives, incorrectly predicting 24,031 patients would not get vaccinated when they actually did. This suggests the model may be overly conservative in its vaccination predictions.
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for OLS Regression with Classifier")
+```
+
+Examining the confusion matrix provides additional insight into the model's performance. It correctly identified a large number of patients who did not get vaccinated (180,113 true negatives) and a small number who did get vaccinated (4 true positives). However, the model struggled more with false negatives, incorrectly predicting 24,031 patients would not get vaccinated when they actually did. This suggests the model may have a hard time discriminating between patients who do and do not get vaccinated.
 
 ### Logistic Regression
-
-Next, we use logistic regression to predict whether an individual will get vaccinated given their covariates. Logistic regression maximizes the probability that the outcome of interest occurs, and we can interpret the output coefficients as probabilities that quantify the effect of each covariate on the log odds of vaccination. We use all available covariates to fit our model, and to make predictions, we use a threshold of 0.5. That is, if the $\hat{y} \geq 0.5$, then we predict that the individual will get vaccinated. Using a threshold of 0.5 is more parsimonious and makes more intuitive sense than using a different threshold would. 
-
-In this model, as with the OLS model, the variable with the largest impact (i.e., the largest magnitude) is whether an individual got a flu vaccine in the previous season. The coefficient is 1.056, meaning that an individual getting vaccinated in the previous season increases their log odds of being vaccinated this season by 105.6%. Other significant covariates include what condition the individual was in, whether they received two reminder text messages, their age, their insurance, and the number of previous vaccines they received. These results show that history is a powerful predictor of what someone will do. Although the magnitudes of the coefficients are smaller on the treatments, the coefficients are still significant and positive, indicating that an individual being in a treatment condition and not a control condition increases their log odds of getting vaccinated.
-
-This model obtains an AUC of 0.7624 and a misspecification error of 0.119. Looking into the breakdown of errors, this model correctly predicted that 179,014 individuals would not get vaccinated and that 843 individuals would get vaccinated but incorrectly predicted that 1,099 individuals got vaccinated (false positives) and that 23,192 did not get vaccinated (false negatives). 
-
-Comparing our logistic regression model with our OLS model, we see very similar results of the AUC and misspecification error. However, the OLS regression model outperforms the logistic regression model in both false positives, while the logistic regression model outputs fewer false negatives. Given the close performance of these two models, we may want to consider the interpretability of the models as well as the kinds of mistakes they make to evaluate which model we would prefer. If we want to ensure that we will not be overly optimistic, then we will prefer the model with a lower false positive rate, which in this case is the OLS regression model. Should these vaccination predictions be used to inform vaccine stocking decisions, an inflated estimate could lead to wasted vaccines. On the other hand, if we want to be conservative and not over-predict the number of individuals who would like to get vaccinated, then we would prefer the model with a lower false negative rate, which in this case is the logistic regression model.  
 
 
 ```{r, include = F}
@@ -422,13 +410,21 @@ misspecification_error <- 0.118987205360817
 ```
 
 
+Next, we use logistic regression to predict whether an individual will get vaccinated given their covariates. Logistic regression maximizes the probability that the outcome of interest occurs, and we can interpret the output coefficients as probabilities that quantify the effect of each covariate on the log odds of vaccination. We use all available covariates to fit our model, and to make predictions, we use a threshold of 0.5. That is, if the $P(vaccination) \geq 0.5$, then we predict that the individual will get vaccinated. 
+
+In this model, as with the OLS model, the variable with the largest impact (i.e., the largest magnitude) is whether an individual got a flu vaccine in the previous season. The coefficient is 1.056, meaning that an individual getting vaccinated in the previous season increases their log odds of being vaccinated this season by 105.6%. Other significant covariates include what condition the individual was in, whether they received two reminder text messages, their age, their insurance, and the number of previous vaccines they received. These results show that history is a powerful predictor of what someone will do. Although the magnitudes of the coefficients are smaller on the treatments, the coefficients are still significant and positive, indicating that an individual being in a treatment condition and not a control condition increases their log odds of getting vaccinated (see Appendix for full model summary and ANOVA).
+
+This model obtains an AUC of 0.7624 and a misspecification error of 0.119. Looking into the breakdown of errors, this model correctly predicted that 179,014 individuals would not get vaccinated and that 843 individuals would get vaccinated but incorrectly predicted that 1,099 individuals got vaccinated (false positives) and that 23,192 did not get vaccinated (false negatives). 
+
+
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for Logistic Regression with Classifier")
+```
+
+Comparing our logistic regression model with our OLS model, we see very similar results of the AUC and misspecification error. However, the OLS regression model outperforms the logistic regression model in both false positives, while the logistic regression model outputs fewer false negatives. Given the close performance of these two models, we may want to consider the interpretability of the models as well as the kinds of mistakes they make to evaluate which model we would prefer. If we want to ensure that we will not be overly optimistic, then we will prefer the model with a lower false positive rate, which in this case is the OLS regression model. Should these vaccination predictions be used to inform vaccine stocking decisions, an inflated estimate could lead to wasted vaccines. On the other hand, if we want to be conservative and not over-predict the number of individuals who would like to get vaccinated, then we would prefer the model with a lower false negative rate, which in this case is the logistic regression model.  
+
 ### Relaxed LASSO with Logit
 
-In order to more effectively compare the OLS and logistic regression models, we also run a relaxed LASSO with logit model. We do not force in any covariates. As with the above models, we use a threshold of 0.5 to determine if an individual is predicted to have gotten vaccinated or not. By creating a model that only incorporates the most important variables, we can compare which variables are selected for the OLS versus logistic regression models, which can then inform our evaluation of which model is more suitable for this task. 
-
-LASSO selects the following variables to include in the logistic regression: age, insurance (Medicaid or Medicare), the number of previous flu shots received, and the number of pharmacy visits in the last year. All of these covariates were stastically significant at a <0.001 alpha level in the original logistic regression, and all of these covariates are significant in this model, indicating that there is no need for backwards selection. Similar to the original logistic regression, history is a powerful predictor; here, the previous flu vaccination count is the most informative covariate in terms of magnitude. However, the original model found whether an individual had been vaccinated in the past year to be more informative, and it is interesting that LASSO did not select that covariate to be included.
-
-This model achieves an AUC of 0.7404 and a misspecification error of 0.120. It correctly predicts that 178,570 individuals did not get vaccinated and that 1,048 individuals did get vaccinated but incorrectly predicts that 1,543 individuals got vaccinated even though they did not (false positives) and that 22,987 individuals did not get vaccinated when they actually did (false negatives).  Using LASSO slightly decreases accuracy metrics in terms of both the AUC and misspecification error when compared to the logistic regression model. As with the regular OLS and logistic regression models, the relaxed LASSO with OLS model outperforms the relaxed LASSO with logit model. 
 
 ```{r, include = F}
 confusion_table <- structure(c(178570L, 1543L, 22987L, 1048L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
@@ -477,9 +473,19 @@ misspecification_error <- 0.120157924642906
 # 
 # Number of Fisher Scoring iterations: 5
 
-
-
 ```
+
+In order to more effectively compare the OLS and logistic regression models, we also run a relaxed LASSO with logit model. We do not force in any covariates. As with the above models, we use a threshold of 0.5 to determine if an individual is predicted to have gotten vaccinated or not. By creating a model that only incorporates the most important variables, we can compare which variables are selected for the OLS versus logistic regression models, which can then inform our evaluation of which model is more suitable for this task. 
+
+LASSO selects the following variables to include in the logistic regression: age, insurance (Medicaid or Medicare), the number of previous flu shots received, and the number of pharmacy visits in the last year. All of these covariates were stastically significant at a <0.001 alpha level in the original logistic regression, and all of these covariates are significant in this model, indicating that there is no need for backwards selection. Similar to the original logistic regression, history is a powerful predictor; here, the previous flu vaccination count is the most informative covariate in terms of magnitude. However, the original model found whether an individual had been vaccinated in the past year to be more informative, and it is interesting that LASSO did not select that covariate to be included.
+
+This model achieves an AUC of 0.7404 and a misspecification error of 0.120. It correctly predicts that 178,570 individuals did not get vaccinated and that 1,048 individuals did get vaccinated but incorrectly predicts that 1,543 individuals got vaccinated even though they did not (false positives) and that 22,987 individuals did not get vaccinated when they actually did (false negatives).  Using LASSO slightly decreases accuracy metrics in terms of both the AUC and misspecification error when compared to the logistic regression model. As with the regular OLS and logistic regression models, the relaxed LASSO with OLS model outperforms the relaxed LASSO with logit model. 
+
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for Relaxed Lasso - Logistic Regression")
+```
+
+
 
 ### Relaxed LASSO with OLS
 
@@ -529,29 +535,19 @@ misspecification_error <- 0.117772400415385
 
 ```
 
-Applying LASSO to the OLS model leaves us with the following covariates: age, insurance, previous number of flu vaccinations received, and number of pharmacy visits in the last year. Notably, this is the exact same set of covariates returned by the logistic regression model with relaxed LASSO.
+Applying LASSO to the OLS model leaves us with the following covariates: age, insurance, previous number of flu vaccinations received, and number of pharmacy visits in the last year. This is the same set of covariates returned by the logistic regression model with relaxed LASSO.
 
 On the test set, the Relaxed Lasso with OLS model obtained an AUC of 0.744, indicating moderately good discrimination between vaccinated and unvaccinated patients, though not quite as high as the standard OLS with Classifier. The misclassification rate was 11.78%, so predictions were incorrect for just under 12% of patients.
 
 The confusion matrix shows this model correctly predicted a high number of true negatives (180,040 patients) and a moderate number of true positives (65 patients). It had a fairly low false positive rate, only predicting 73 patients would get vaccinated when they did not. However, like the OLS with Classifier, it had a much higher false negative rate, incorrectly predicting 23,970 patients would not get vaccinated when in fact they did. 
 
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for Relaxed Lasso - OLS Regression")
+```
+
 This suggests that while using the Lasso for feature selection can help yield a more parsimonious model, it may come at a slight cost to overall performance compared to using all available predictors. Both OLS and Relaxed LASSO w/ OLS seem to do better at identifying patients who will not get vaccinated than those who will, which could relate to the class imbalance in the data with most patients not getting vaccinated.
 
 ### Random Forest
-
-The above models have high false negative rates, which may indicate that linear and logistic regressions cannot fully capture the relationship between the covariates and vaccination propensities. As such, we run a random forest model, which can allow for more flexibility. Our random forest model has mtry = 4, meaning that we split on four randomly selected predictors at each split, and ntree = 500, meaning that our forest consists of 500 trees. We arrived at these hyperparameters via manual tuning as the required R packages for finding the optimal hyperparameters were not available on the secure server.
-
-In this model, age, the number of pharmacy visits in the last year, and the last vaccination time at the 30-minute granularity are the three most important variables. Similar to the logistic regression models, the number of pharmacy visits has high importance. Interestingly, the time at which an individual was vaccinated previously is also important. This may be an indication of overfitting or perhaps it is important conditional on the type of reminder text that the individual received. 
-
-The random forest model achieves an AUC of 0.7489 and a misspecification error of 0.119. Despite the additional flexibility offered by the random forest model, the AUC is lower and there is no meaningful difference in the misspecification error when compared to those of the OLS and logistic regression models. Considering the confusion matrix, the random forest model correctly predicted that 179,382 individuals were not vaccinated (true negatives) and 494 were vaccinated (true positives) but incorrectly predicted tat 731 individuals were vaccinated when they were not (false positives) and 23,541 individuals were not vaccinated when they were (false negatives). Again, there does not appear to be improvement in the random forest model when compared to the OLS and logistic regression models. 
-
-<!-- manually tuned the model (because r packages were not available on the secure server) -->
-
-<!-- mtry = 4, ntree = 500 -->
-
-![Random Forest Variable Importance - Gini ](figures/random-forest-variable-importance.png){width=100%} 
-
-
 
 ```{r, include = F}
 confusion_table <- structure(c(179382L, 731L, 235411, 494L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
@@ -562,30 +558,22 @@ misspecification_error <- 0.118894135627094
 
 ```
 
+The above models have high false negative rates, which may indicate that linear and logistic regressions cannot fully capture the relationship between the covariates and vaccination propensities. As such, we run a random forest model, which can allow for more flexibility. Our random forest model has mtry = 4, meaning that we split on four randomly selected predictors at each split, and ntree = 500, meaning that our forest consists of 500 trees. We arrived at these hyperparameters via manual tuning as the required R packages for finding the optimal hyperparameters were not available on the secure server.
+
+In this model, age, the number of pharmacy visits in the last year, and the last vaccination time at the 30-minute granularity are the three most important variables (Figure 7). Similar to the logistic regression models, the number of pharmacy visits has high importance. Interestingly, the time at which an individual was vaccinated previously is also important. This may be an indication of overfitting or perhaps it is important conditional on the type of reminder text that the individual received. 
+
+![Random Forest Variable Importance - Gini ](figures/random-forest-variable-importance.png){width=80%} 
+
+The random forest model achieves an AUC of 0.7489 and a misspecification error of 0.119. Despite the additional flexibility offered by the random forest model, the AUC is lower and there is no meaningful difference in the misspecification error when compared to those of the OLS and logistic regression models. Considering the confusion matrix, the random forest model correctly predicted that 179,382 individuals were not vaccinated (true negatives) and 494 were vaccinated (true positives) but incorrectly predicted that 731 individuals were vaccinated when they were not (false positives) and 23,541 individuals were not vaccinated when they were (false negatives). Again, there does not appear to be improvement in the random forest model when compared to the OLS and logistic regression models. 
+
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for Random Forest")
+```
+
 ### Neural Network
 
-<!-- Ran a neural net using the nnet package in R -->
-<!-- - uses a logistic activation function -->
-<!-- - neural network with 1 hidden layer with 10 nodes -->
-<!-- - 100 iterations (the most the server could take - it was very slow) -->
-<!-- had to use the nnet package instead of Keras, because I could not isntall Python on the secure server -->
-
-The final model that we consider is a neural network with 1 hidden layer of 10 nodes with a logistic activation function and an output layer that uses a sigmoid activation. This architecture has a total of 751 parameters, and the architecture is included in the figure below. We can interpret the outputs as the probability that an input individual and their associated covariates has been vaccinated. We implemented our neural network using the nnet package in R, and to train our neural network, we run it over 100 epochs. Due to computational resource constraints, we were not able to tune our hyperparameters or run the neural network for more epochs. Notably, our neural network predicts 0 for every input, suggesting that hyperparameter tuning or a different architecture may be needed to yield more informative results. 
-
-In this model, age, whether the individual received a flu vaccine the previous season, and the number of vaccines the individual has received are the three most important variables. As with our logistic regression models, history is an important consideration. Age is the most important variable once again, as was the case with our random forest model. In our OLS and logistic regression models, age is a statistically significant covariate but the coefficients are small and positive in both cases. Future research can consider examining the role of age more thoroughly and how it impacts vaccination rates.
-
-Despite predicting all 0s, the neural network obtains an AUC of 0.7644, which is the highest of all of the models, and a misspecification error of 0.118. Of these predictions, 180,113 are true negatives and 24,035 are false negatives. While the neural network slightly outperforms all of the other models in terms of the AUC, the comparable misspecification error shows that machine learning may not always lead to improvements in performance. Additionally, given the significantly higher resource requirements for running a neural network and the uninformative results, simpler models are likely better suited for this problem. 
-
-<!-- Note: Here is a plot of the neural network architecture: it is a 73-10-1 network with 751 weights. Here is a plot of the architecture: -->
-
-![Neural Network Architecture](figures/neural-net-architecture.png){width=100%} 
-
-![Neural Network Variable Importance - Garson ](figures/neural-net-variable-importance.png){width=100%} 
-
-\newpage
 ```{r, include = F}
-
-confusion_table <- structure(c(180113L, 24035L), dim = 1:2, dimnames = list(Predicted = "0", Actual = c("0", "1")), class = "table")
+confusion_table <- structure(c(180113L, 0L, 24035L, 0L), dim = c(2L, 2L), dimnames = list(Predicted = c("0", "1"), Actual = c("0", "1")), class = "table")
 
 auc_ols <- 0.7644
 
@@ -593,24 +581,25 @@ misspecification_error <- 0.117733213159081
 
 ```
 
+The final model that we consider is a neural network with 1 hidden layer of 10 nodes with a logistic activation function and an output layer that uses a sigmoid activation. We run the neural network model in R using the package `nnet`, as installing python packages on the secure server was not possible.
 
-# Conclusions
+This architecture has a total of 751 parameters, and the architecture is included in the figure below. We can interpret the outputs as the probability that an input individual and their associated covariates has been vaccinated. We implemented our neural network using the nnet package in R, and to train our neural network, we run it over 100 epochs. Due to computational resource constraints, we were not able to tune our hyperparameters or run the neural network for more epochs. Notably, our neural network predicts 0 for every input, suggesting that hyperparameter tuning or a different architecture may be needed to yield more informative results. 
 
-In this paper, we analyze several different models and their abilities to predict whether certain individuals will get a flu vaccine this season. Specifically, we consider OLS models with and without LASSO, logistic regression models with and without LASSO, a random forest model, and a neural network. The OLS and neural network models achieve the highest performance; interestingly, both models essentially predict that no one will get vaccinated, indicating that a simple heuristic of guessing that nobody would get vaccinated would match the performance or outperform all of the models in our dataset. This gives us a baseline model to work with and can inform future research; that is, we should expect any predictive model to do at least as well as this simple heuristic that always predicts 0 for every individual.
+![Architecture: 73-10-1 neural network with 751 weights](figures/neural-net-architecture.png){width=100%} 
 
-Based on our models, we can see that history is highly predictive of future behavior. Whether an individual got vaccinated the previous year and the number of flu vaccines they have received in the past are statistically significant covariates with the highest magnitudes. This makes intuitive sense because we would expect that individuals who have received flu vaccines in the past would be more likely to receive another one, and the more they have the received, the more likely they would be to get vaccinated again this season. This is similar to the marketing policy that consider recency and frequency to be the most informative indicators of whether a customer is likely to remain loyal. Thus, future research can consider incorporating more historical covariates which could improve the accuracy of models.
+In this model, age, whether the individual received a flu vaccine the previous season, and the number of vaccines the individual has received are the three most important variables. As with our logistic regression models, history is an important consideration. Age is the most important variable once again, as was the case with our random forest model. In our OLS and logistic regression models, age is a statistically significant covariate but the coefficients are small and positive in both cases. Future research can consider examining the role of age more thoroughly and how it impacts vaccination rates.
 
+![Neural Network Variable Importance - Garson ](figures/neural-net-variable-importance.png){width=100%} 
 
-![ROC Curve Comparison of Different Models](figures/ROC-curve-comparison.png){width=100%}
+Despite predicting all 0s, the neural network obtains an AUC of 0.7644, which is the highest of all of the models, and a misspecification error of 0.118. Of these predictions, 180,113 are true negatives and 24,035 are false negatives. While the neural network slightly outperforms all of the other models in terms of the AUC, the comparable misspecification error shows that machine learning may not always lead to improvements in performance. Additionally, given the significantly higher resource requirements for running a neural network and the uninformative results, simpler models are likely better suited for this problem. 
 
-<!-- Notes from Rob -->
-<!-- OLS and Neural net performed the best on both AUC and misclassification error. Both models essentially predicted that nobody would get vaccinated. In this way, it is interesting that a simple heuristic (guessing that nobody would get vaccinated) would match the performance of the two best models and outperform all the other models.  -->
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for Neural Network")
+```
 
-<!-- Went with OLS as the best model because it was the most **interpretable** and was tied for the best AUC and misclassification error. -->
+## Holdout-Validation
 
-<!-- Hints that predictions are largely not dependent on model choice - could imply that we don't have good enough data features to be able to improve on our prediction (not a function of non-linearity or model-free approaches), and not good enough data features to be able to differentiate and distinguish between those who will and will not get vaccinated within 30 days.  -->
-
-<!-- Testing our model on the hold-out 20% validation set results below yields errors consistent with our testing errors.  -->
+We selected the OLS regression model as our final model to evaluate on the holdout validation set, as it has the highest AUC of all the models and is simpler to interpret than the neural network. The AUC on the holdout validation set is 0.7621, which is similar to the AUC on the training set (0.763). The misclassification errors are also similar, with the holdout validation set having a misspecification error of 11.9% (as opposed to 11.8%. We conclude that our model generalizes well to the holdout validation set, and that the OLS model does not suffer from overfitting. 
 
 ```{r, include = F}
 confusion_table <- structure(c(172345L, 4L, 23217L, 2L), dim = c(2L, 2L), dimnames = list(
@@ -622,8 +611,31 @@ misspecification_error <- 0.118736194060378
 
 ```
 
+```{r, echo = F}
+pander(confusion_table, caption = "Confusion Matrix for OLS on Validation Set")
+```
+
+# Conclusions
+
+In this paper, we analyze several different models and their abilities to predict whether certain individuals will get a flu vaccine this season. Specifically, we consider OLS models with and without LASSO, logistic regression models with and without LASSO, a random forest model, and a neural network. The OLS and neural network models achieve the highest performance; interestingly, both models essentially predict that no one will get vaccinated, indicating that a simple heuristic of guessing that nobody would get vaccinated would match the performance or outperform all of the models in our dataset. This gives us a baseline model to work with and can inform future research; that is, we should expect any predictive model to do at least as well as this simple heuristic that always predicts 0 for every individual.
+
+Based on our models, we can see that history is highly predictive of future behavior. Whether an individual got vaccinated the previous year and the number of flu vaccines they have received in the past are statistically significant covariates with the highest magnitudes. This makes intuitive sense because we would expect that individuals who have received flu vaccines in the past would be more likely to receive another one, and the more they have the received, the more likely they would be to get vaccinated again this season. This is similar to the marketing policy that consider recency and frequency to be the most informative indicators of whether a customer is likely to remain loyal. 
+
+However, our best performing models cannot identify true positives with sufficient accuracy. This low specificity may be informative as it would suggest that either additional data is needed to accurately identify positive vaccinations, or that a theoretical limit on prediction accuracy may exist as a result of random shocks that affect the decision to follow-through on vaccination[^3]. Thus, future research should test whether incorporating additional covariates which could improve the accuracy of models, or if vaccinations are driven by some unobservable randommness that cannot be captured in existing datasets. 
+
+[^1]: Leidner, A. J., Murthy, N., Chesson, H. W., Biggerstaff, M., Stoecker, C., Harris, A. M., Acosta, A., Dooling, K., & Bridges, C. B. (2019). Cost-effectiveness of adult vaccinations: A systematic review. Vaccine, 37(2), 226–234. https://doi.org/10.1016/j.vaccine.2018.11.056
+
+[^2]: Flu Vaccination Coverage, United States, 2022–23 Influenza Season | FluVaxView | Seasonal Influenza (Flu) | CDC. (2023, October 10). https://www.cdc.gov/flu/fluvaxview/coverage-2223estimates.htm
+
+[^3]: Hofman, J. M., Watts, D. J., Athey, S., Garip, F., Griffiths, T. L., Kleinberg, J., Margetts, H., Mullainathan, S., Salganik, M. J., Vazire, S., Vespignani, A., & Yarkoni, T. (2021). Integrating explanation and prediction in computational social science. Nature, 595(7866), 181–188. https://doi.org/10.1038/s41586-021-03659-0
+
+\newpage
 
 # Appendix
+
+## ROC Curve Comparison of Different Models
+
+![ROC Curve Comparison of Different Models](figures/ROC-curve-comparison.png){width=100%}
 
 ## OLS Regression
 ```{r, echo = F}
